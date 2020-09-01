@@ -11,7 +11,7 @@ func TestAdd(t *testing.T) {
 		t.Error("Expected 10 + 5 to equal 15 got " + strconv.FormatInt(int64(res), 10))
 	}
 
-	res := add(-10, 5)
+	res = add(-10, 5)
 	if res != -5 {
 		t.Error("Expected -10 + 5 to equal -5 got " + strconv.FormatInt(int64(res), 10))
 	}
