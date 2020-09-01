@@ -1,10 +1,12 @@
 # D70024E Kademlia 
+Project designed and written in Go in conjunction with the D7024E Mobile and distributed computing systems course at Luleå University of Technology.
 
 ## Project description
-TODO
+The purpose of the project is to implement the Kademlia P2P distributed hash table network structure and simulate network communication between nodes.
 
 ## Requirements
 * go 1.15+
+* docker 19.03.12+
 
 ## Setup
 
@@ -14,6 +16,7 @@ TODO
 Below are the absolute minimum packages you will need for Linux. Names might vary depending on your distribution, you might need to install it manually if you can't find it using your distribution's package manager.
 ```
 go 2:1.15-1
+docker 1:19.03.12-2
 ```
 
 
