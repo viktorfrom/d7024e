@@ -1,4 +1,4 @@
-# D70024E Kademlia 
+# D7024E Kademlia 
 Project designed and written in Go in conjunction with the D7024E Mobile and distributed computing systems course at Luleå University of Technology.
 
 ## Project description
