@@ -15,7 +15,7 @@ FROM golang:alpine
 RUN mkdir /app 
 ADD . /app/
 WORKDIR /app 
-RUN go build -o kademlia .
+RUN go build -o kademlia cmd/kademlia/kademlia.go 
 RUN adduser -S -D -H -h /app appuser
 USER appuser
 CMD ["./kademlia"]
