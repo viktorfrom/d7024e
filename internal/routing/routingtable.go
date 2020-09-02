@@ -1,7 +1,10 @@
-package d7024e
+package routing
+
+import (
+	. "github.com/viktorfrom/d7024e-kademlia/internal/"
+)
 
 const bucketSize = 20
-
 
 // RoutingTable definition
 // keeps a refrence contact of me and an array of buckets
