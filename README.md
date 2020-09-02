@@ -21,9 +21,37 @@ docker 1:19.03.12-2
 
 
 ## Build instructions
+Build the docker image named kadlab
 ```
-go run main.go
+docker build . -t kadlab
 ```
+## Deploy
+To deploy to a stack using the docker-compose config. This will spin up replicas of the kadlab Docker Image
+```
+docker stack deploy --compose-file docker-compose.yml kadlab
+```
+
+When deploying again after an update of the Kadlab image the current stack needs to be removed
+```
+docker stack rm
+```
+
+## While Running
+List the different replica services
+```
+docker stack ps kadlab 
+```
+
+List the different running containers 
+```
+docker ps
+```
+
+Attach to a running container
+```
+docker attach "ContainerId"
+```
+
 
 ## Authors
 * Viktor From - vikfro-6@student.ltu.se - [viktorfrom](https://github.com/viktorfrom)
