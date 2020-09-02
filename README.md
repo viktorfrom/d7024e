@@ -39,12 +39,17 @@ docker stack rm
 ## While Running
 List the different replica services
 ```
-sudo docker stack ps kadlab 
+docker stack ps kadlab 
 ```
 
-Log the output from a service to the console
+List the different running containers 
 ```
-sudo docker service logs "taskId" --raw
+docker ps
+```
+
+Attach to a running container
+```
+docker attach "ContainerId"
 ```
 
 
