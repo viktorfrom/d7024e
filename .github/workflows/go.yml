@@ -30,8 +30,8 @@ jobs:
             dep ensure
         fi
 
-    - name: Build
+    - name: Build kademlia
       run: go build -v cmd/kademlia/kademlia.go 
 
-    - name: Test
-      run: go test -v .
+    - name: Unit Tests
+      run: go test -v ./...

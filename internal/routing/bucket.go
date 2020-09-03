@@ -1,8 +1,12 @@
-package bucket
+package routing
 
 import (
 	"container/list"
+
+	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
+
+const bucketSize int = 5
 
 // bucket definition
 // contains a List
@@ -38,7 +42,7 @@ func (bucket *bucket) AddContact(contact Contact) {
 	}
 }
 
-// GetContactAndCalcDistance returns an array of Contacts where 
+// GetContactAndCalcDistance returns an array of Contacts where
 // the distance has already been calculated
 func (bucket *bucket) GetContactAndCalcDistance(target *KademliaID) []Contact {
 	var contacts []Contact
