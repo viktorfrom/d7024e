@@ -3,6 +3,8 @@ package routing
 import (
 	"fmt"
 	"testing"
+
+	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
 func TestRoutingTable(t *testing.T) {

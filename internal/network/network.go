@@ -1,5 +1,9 @@
 package network
 
+import (
+	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
+)
+
 type Network struct {
 }
 

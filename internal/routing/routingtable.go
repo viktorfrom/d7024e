@@ -1,10 +1,8 @@
 package routing
 
 import (
-	. "github.com/viktorfrom/d7024e-kademlia/internal/"
+	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
-
-const bucketSize = 20
 
 // RoutingTable definition
 // keeps a refrence contact of me and an array of buckets
