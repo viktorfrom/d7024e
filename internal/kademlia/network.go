@@ -1,16 +1,20 @@
 package kademlia
 
 import (
-	"bufio"
-	"fmt"
+	"errors"
+	"log"
 	"net"
-	"os"
-	"strings"
+
+	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
-// Network TODO
-type Network struct {
-}
+const (
+	udpNetwork  string = "udp4"
+	pingMsg     string = "PING"
+	pongMsg     string = "PONG"
+	errNoReply  string = "did not receive a reply"
+	errDiffAddr string = "receive address not same as send address"
+)
 
 // InitNetwork TODO
 func (network *Network) InitNetwork(ip string, port string) {
@@ -43,92 +47,67 @@ func (network *Network) Listen(ip string, port string) {
 		fmt.Println(err)
 		return
 	}
+type Network struct {
+}
 
-	connection, err := net.ListenUDP("udp4", s)
+func Listen(ip string, port int) {
+	listenAddr := &net.UDPAddr{IP: net.ParseIP(ip), Port: port, Zone: ""}
+	readBuffer := make([]byte, 1024)
+
+	conn, err := net.ListenUDP(udpNetwork, listenAddr)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
-
-	defer connection.Close()
-	buffer := make([]byte, 1024)
+	defer conn.Close()
 
 	for {
-		n, addr, err := connection.ReadFromUDP(buffer)
-		fmt.Print("-> ", string(buffer[0:n]))
-
-		var data []byte
-
-		if strings.TrimSpace(string(buffer[0:n])) == "PING" {
-			data = []byte(string("PONG"))
-		} else if strings.TrimSpace(string(buffer[0:n])) == "FIND_NODE" {
-			data = []byte(string(ip + ";" + port + ";SuperRandomID"))
-		}
-
-		fmt.Printf("data: %s\n", string(data))
-		_, err = connection.WriteToUDP(data, addr)
+		bytesRead, receiveAddr, err := conn.ReadFromUDP(readBuffer)
 		if err != nil {
-			fmt.Println(err)
-			return
+			log.Fatal(err)
+		}
+
+		receivedMsg := string(readBuffer[0:bytesRead])
+		if receivedMsg == pingMsg {
+			conn.WriteToUDP([]byte(pongMsg), receiveAddr)
 		}
 	}
 }
 
-// setup for the network client
-func (network *Network) initNetworkClient(ip string) net.UDPConn {
-	fmt.Println(ip)
-	s, err := net.ResolveUDPAddr("udp4", ip)
+// SendPingMessage pings a contact and returns the response. Returns an
+// error if the contact fails to respond.
+func (network *Network) SendPingMessage(contact *Contact) (*string, error) {
+	readBuffer := make([]byte, 1024)
+	sendAddr, err := net.ResolveUDPAddr(udpNetwork, contact.Address)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
-	c, err := net.DialUDP("udp4", nil, s)
+
+	conn, err := net.DialUDP(udpNetwork, nil, sendAddr)
 	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Printf("The UDP server is %s\n", c.RemoteAddr().String())
+		return nil, err
 	}
-	return *c
-}
+	defer conn.Close()
 
-// sendMessage sends a stream of data to a UDP server
-func (network *Network) sendMessage(ip string, data []byte) {
-	c := network.initNetworkClient(ip)
-	_, err := c.Write(data)
-
+	_, err = conn.Write([]byte(pingMsg))
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 
-	if strings.TrimSpace(string(data)) == "STOP" {
-		fmt.Println("Exiting UDP client!")
-		return
-	}
-
-	buffer := make([]byte, 1024)
-	n, _, err := c.ReadFromUDP(buffer)
+	bytesRead, receiveAddr, err := conn.ReadFromUDP(readBuffer)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return nil, err
 	}
-	fmt.Printf("Reply: %s\n", string(buffer[0:n]))
-	c.Close()
-}
+	response := string(readBuffer[0:bytesRead])
 
-// SendPingMessage Temporary UDP client sending example packages to an inputed IP address
-func (network *Network) SendPingMessage(contact *Contact) {
-	reader := bufio.NewReader(os.Stdin)
-
-	for {
-		fmt.Print("enter IP to connect to >> ")
-		ip, _ := reader.ReadString('\n')
-		CONNECT := strings.TrimSuffix(ip, "\n") + ":8080"
-		fmt.Print("Command >> ")
-		command, _ := reader.ReadString('\n')
-
-		data := []byte(strings.TrimSuffix(command, "\n"))
-
-		network.sendMessage(CONNECT, data)
+	if bytesRead == 0 {
+		return nil, errors.New(errNoReply)
 	}
+
+	if receiveAddr.String() != sendAddr.String() {
+		return nil, errors.New(errDiffAddr)
+	}
+
+	return &response, nil
 }
 
 // SendFindContactMessage TODO
