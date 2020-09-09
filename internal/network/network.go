@@ -3,11 +3,9 @@ package network
 import (
 	"bufio"
 	"fmt"
-	"math/rand"
 	"net"
 	"os"
 	"strings"
-	"time"
 
 	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
@@ -16,8 +14,25 @@ import (
 type Network struct {
 }
 
+func getLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	for _, address := range addrs {
+		// check the address type and if it is not a loopback the display it
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	return ""
+}
+
 // Listen Start UDP server
-func Listen(ip string, port string) {
+func Listen(port string) {
+	ip := getLocalIP()
 
 	PORT := ":" + port
 	s, err := net.ResolveUDPAddr("udp4", PORT)
@@ -34,7 +49,6 @@ func Listen(ip string, port string) {
 
 	defer connection.Close()
 	buffer := make([]byte, 1024)
-	rand.Seed(time.Now().Unix())
 
 	for {
 		n, addr, err := connection.ReadFromUDP(buffer)
@@ -45,7 +59,7 @@ func Listen(ip string, port string) {
 		if strings.TrimSpace(string(buffer[0:n])) == "PING" {
 			data = []byte(string("PONG"))
 		} else if strings.TrimSpace(string(buffer[0:n])) == "FIND_NODE" {
-			data = []byte(string("IP;8080;SuperRandomID"))
+			data = []byte(string(ip + ";" + port + ";SuperRandomID"))
 		}
 
 		fmt.Printf("data: %s\n", string(data))
@@ -97,15 +111,13 @@ func (network *Network) sendMessage(ip string, data []byte) {
 
 // SendPingMessage Temporary UDP client sending example packages to an inputed IP address
 func (network *Network) SendPingMessage(contact *Contact) {
-	// TODO
-
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
 		fmt.Print("enter IP to connect to >> ")
 		ip, _ := reader.ReadString('\n')
 		CONNECT := strings.TrimSuffix(ip, "\n") + ":8080"
-		fmt.Print(">> ")
+		fmt.Print("Command >> ")
 		command, _ := reader.ReadString('\n')
 
 		data := []byte(strings.TrimSuffix(command, "\n"))
@@ -114,14 +126,17 @@ func (network *Network) SendPingMessage(contact *Contact) {
 	}
 }
 
+// SendFindContactMessage ...
 func (network *Network) SendFindContactMessage(contact *Contact) {
 	// TODO
 }
 
+// SendFindDataMessage ...
 func (network *Network) SendFindDataMessage(hash string) {
 	// TODO
 }
 
+// SendStoreMessage ...
 func (network *Network) SendStoreMessage(data []byte) {
 	// TODO
 }
