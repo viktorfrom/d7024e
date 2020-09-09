@@ -10,7 +10,7 @@ import (
 	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
-// Network ....
+// Network TODO
 type Network struct {
 }
 
@@ -71,6 +71,7 @@ func Listen(port string) {
 	}
 }
 
+// setup for the network client
 func (network *Network) initNetworkClient(ip string) net.UDPConn {
 	fmt.Println(ip)
 	s, err := net.ResolveUDPAddr("udp4", ip)
@@ -86,6 +87,7 @@ func (network *Network) initNetworkClient(ip string) net.UDPConn {
 	return *c
 }
 
+// sendMessage sends a stream of data to a UDP server
 func (network *Network) sendMessage(ip string, data []byte) {
 	c := network.initNetworkClient(ip)
 	_, err := c.Write(data)
@@ -126,17 +128,17 @@ func (network *Network) SendPingMessage(contact *Contact) {
 	}
 }
 
-// SendFindContactMessage ...
+// SendFindContactMessage TODO
 func (network *Network) SendFindContactMessage(contact *Contact) {
 	// TODO
 }
 
-// SendFindDataMessage ...
+// SendFindDataMessage TODO
 func (network *Network) SendFindDataMessage(hash string) {
 	// TODO
 }
 
-// SendStoreMessage ...
+// SendStoreMessage TODO
 func (network *Network) SendStoreMessage(data []byte) {
 	// TODO
 }
