@@ -11,5 +11,7 @@ func main() {
 
 	// setup UDP server on port 8080
 	go network.Listen("", "8080")
-	network.SendMessage(nil, nil)
+
+	n := network.Network{}
+	n.SendPingMessage(nil)
 }
