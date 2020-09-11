@@ -7,9 +7,9 @@ import (
 )
 
 func main() {
-	fmt.Println("Hello, Arch!")
+	fmt.Println("Booting Kademlia....")
 
 	node := kademlia.Kademlia{}
-	node.InitNode(kademlia.NewRandomKademliaID())
-
+	go node.InitNode(kademlia.NewRandomKademliaID())
+	StartCli()
 }

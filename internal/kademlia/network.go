@@ -12,10 +12,12 @@ import (
 type Network struct {
 }
 
+// InitNetwork TODO
 func (network *Network) InitNetwork(ip string, port string) {
-	go network.Listen(ip, port)
+	network.Listen(ip, port)
 }
 
+// GetLocalIP returns the IP of the Node in the Docker Network
 func (network *Network) GetLocalIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -34,7 +36,7 @@ func (network *Network) GetLocalIP() string {
 
 // Listen Start UDP server
 func (network *Network) Listen(ip string, port string) {
-
+	fmt.Println("Starting server")
 	PORT := ":" + port
 	s, err := net.ResolveUDPAddr("udp4", PORT)
 	if err != nil {
