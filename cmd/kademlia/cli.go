@@ -57,7 +57,7 @@ func commands() {
   }
 }
 
-func main() {
+func cli() {
   info()
   commands()
 
