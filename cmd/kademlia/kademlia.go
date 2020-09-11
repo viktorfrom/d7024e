@@ -12,5 +12,4 @@ func main() {
 	node := kademlia.Kademlia{}
 	node.InitNode(kademlia.NewRandomKademliaID())
 
-	fmt.Println(node.RT.ME.String())
 }
