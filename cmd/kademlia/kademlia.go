@@ -3,15 +3,14 @@ package main
 import (
 	"fmt"
 
-	"github.com/viktorfrom/d7024e-kademlia/internal/network"
+	"github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
 func main() {
 	fmt.Println("Hello, Arch!")
 
-	// setup UDP server on port 8080
-	go network.Listen("8080")
+	node := kademlia.Kademlia{}
+	node.InitNode(kademlia.NewRandomKademliaID())
 
-	n := network.Network{}
-	n.SendPingMessage(nil)
+	fmt.Println(node.RT.ME.String())
 }
