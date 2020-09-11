@@ -1,9 +1,7 @@
-package routing
+package kademlia
 
 import (
 	"container/list"
-
-	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
 const bucketSize int = 5

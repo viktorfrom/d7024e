@@ -1,4 +1,4 @@
-package network
+package kademlia
 
 import (
 	"bufio"
@@ -6,15 +6,17 @@ import (
 	"net"
 	"os"
 	"strings"
-
-	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
 // Network TODO
 type Network struct {
 }
 
-func getLocalIP() string {
+func (network *Network) InitNetwork(ip string, port string) {
+	go network.Listen(ip, port)
+}
+
+func (network *Network) GetLocalIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return ""
@@ -31,8 +33,7 @@ func getLocalIP() string {
 }
 
 // Listen Start UDP server
-func Listen(port string) {
-	ip := getLocalIP()
+func (network *Network) Listen(ip string, port string) {
 
 	PORT := ":" + port
 	s, err := net.ResolveUDPAddr("udp4", PORT)
