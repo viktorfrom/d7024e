@@ -1,4 +1,4 @@
-package network
+package kademlia
 
 import (
 	"bufio"
@@ -6,15 +6,19 @@ import (
 	"net"
 	"os"
 	"strings"
-
-	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
 // Network TODO
 type Network struct {
 }
 
-func getLocalIP() string {
+// InitNetwork TODO
+func (network *Network) InitNetwork(ip string, port string) {
+	network.Listen(ip, port)
+}
+
+// GetLocalIP returns the IP of the Node in the Docker Network
+func (network *Network) GetLocalIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return ""
@@ -31,9 +35,8 @@ func getLocalIP() string {
 }
 
 // Listen Start UDP server
-func Listen(port string) {
-	ip := getLocalIP()
-
+func (network *Network) Listen(ip string, port string) {
+	fmt.Println("Starting server")
 	PORT := ":" + port
 	s, err := net.ResolveUDPAddr("udp4", PORT)
 	if err != nil {

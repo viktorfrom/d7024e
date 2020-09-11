@@ -31,7 +31,7 @@ jobs:
         fi
 
     - name: Build kademlia
-      run: go build -v cmd/kademlia/kademlia.go 
+      run: go build -v cmd/kademlia/*.go 
 
     - name: Unit Tests
       run: go test -v ./...

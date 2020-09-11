@@ -1,8 +1,4 @@
-package routing
-
-import (
-	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
-)
+package kademlia
 
 // RoutingTable definition
 // keeps a refrence contact of me and an array of buckets
