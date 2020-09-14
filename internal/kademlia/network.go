@@ -2,10 +2,7 @@ package kademlia
 
 import (
 	"errors"
-	"log"
 	"net"
-
-	. "github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
 const (
@@ -14,12 +11,10 @@ const (
 	pongMsg     string = "PONG"
 	errNoReply  string = "did not receive a reply"
 	errDiffAddr string = "receive address not same as send address"
+	errDiffID   string = "rpc ID was different"
 )
 
-// InitNetwork TODO
-func (network *Network) InitNetwork(ip string, port string) {
-	network.Listen(ip, port)
-}
+type Network struct{}
 
 // GetLocalIP returns the IP of the Node in the Docker Network
 func (network *Network) GetLocalIP() string {
@@ -38,45 +33,53 @@ func (network *Network) GetLocalIP() string {
 	return ""
 }
 
-// Listen Start UDP server
-func (network *Network) Listen(ip string, port string) {
-	fmt.Println("Starting server")
-	PORT := ":" + port
-	s, err := net.ResolveUDPAddr("udp4", PORT)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-type Network struct {
-}
+type Network struct{}
 
-func Listen(ip string, port int) {
+func Listen(ip string, port int) error {
 	listenAddr := &net.UDPAddr{IP: net.ParseIP(ip), Port: port, Zone: ""}
-	readBuffer := make([]byte, 1024)
 
 	conn, err := net.ListenUDP(udpNetwork, listenAddr)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer conn.Close()
+
+	err = handleReceivedRPCs(conn)
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func handleReceivedRPCs(conn *net.UDPConn) error {
+	readBuffer := make([]byte, 1024)
 
 	for {
 		bytesRead, receiveAddr, err := conn.ReadFromUDP(readBuffer)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
-		receivedMsg := string(readBuffer[0:bytesRead])
-		if receivedMsg == pingMsg {
-			conn.WriteToUDP([]byte(pongMsg), receiveAddr)
+		rpc, err := UnmarshalRPC(readBuffer[0:bytesRead])
+		if err != nil {
+			return err
 		}
+
+		*rpc.Type = OK
+		data, _ := MarshalRPC(*rpc)
+		conn.WriteToUDP(data, receiveAddr)
 	}
 }
 
-// SendPingMessage pings a contact and returns the response. Returns an
-// error if the contact fails to respond.
-func (network *Network) SendPingMessage(contact *Contact) (*string, error) {
-	readBuffer := make([]byte, 1024)
+func (network *Network) sendRPC(contact *Contact, rpcType RPCType, data []byte) (*RPC, error) {
+	rpc := NewRPC(rpcType, data)
+	sendID := *rpc.ID
+
+	msg, err := MarshalRPC(rpc)
+	if err != nil {
+		return nil, err
+	}
+
 	sendAddr, err := net.ResolveUDPAddr(udpNetwork, contact.Address)
 	if err != nil {
 		return nil, err
@@ -88,16 +91,17 @@ func (network *Network) SendPingMessage(contact *Contact) (*string, error) {
 	}
 	defer conn.Close()
 
-	_, err = conn.Write([]byte(pingMsg))
+	_, err = conn.Write(msg)
 	if err != nil {
 		return nil, err
 	}
 
+	// Below should be moved to some place else
+	readBuffer := make([]byte, 1024)
 	bytesRead, receiveAddr, err := conn.ReadFromUDP(readBuffer)
 	if err != nil {
 		return nil, err
 	}
-	response := string(readBuffer[0:bytesRead])
 
 	if bytesRead == 0 {
 		return nil, errors.New(errNoReply)
@@ -107,7 +111,27 @@ func (network *Network) SendPingMessage(contact *Contact) (*string, error) {
 		return nil, errors.New(errDiffAddr)
 	}
 
-	return &response, nil
+	reply, err := UnmarshalRPC(readBuffer[0:bytesRead])
+	if err != nil {
+		return nil, err
+	}
+
+	if sendID != *reply.ID {
+		return nil, errors.New(errDiffID)
+	}
+
+	return reply, nil
+}
+
+// SendPingMessage pings a contact and returns the response. Returns an
+// error if the contact fails to respond.
+func (network *Network) SendPingMessage(contact *Contact) (*RPC, error) {
+	rpc, err := network.sendRPC(contact, Ping, []byte(pingMsg))
+	if err != nil {
+		return nil, err
+	}
+
+	return rpc, nil
 }
 
 // SendFindContactMessage TODO
