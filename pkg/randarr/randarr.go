@@ -20,8 +20,8 @@ func RandomBytes(n int) []byte {
 	return arr
 }
 
-// RandomHexString returns a hexadecimal string with the size n bytes
-// n has to be an even number
+// RandomHexString returns a hexadecimal string with the size n bytes.
+// n has to be an even number otherwise an error will be returned
 func RandomHexString(n int) (string, error) {
 	if n%2 != 0 {
 		return "", errors.New(errUneven)
