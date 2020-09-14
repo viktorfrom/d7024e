@@ -10,6 +10,7 @@ func TestNewKademliaID(t *testing.T) {
 	id1 := NewKademliaID("FFFFFFFF00000000000000000000000000000000")
 	id2 := NewKademliaID("2111111400000000000000000000000000000000")
 
+	assert.NotNil(t, id1)
 	assert.Equal(t, id1.String(), "ffffffff00000000000000000000000000000000")
 	assert.Equal(t, id2.String(), "2111111400000000000000000000000000000000")
 }
