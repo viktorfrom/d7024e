@@ -1,6 +1,7 @@
 package randarr
 
 import (
+	"encoding/hex"
 	"math/rand"
 	"time"
 )
@@ -11,4 +12,11 @@ func RandomBytes(n int) []byte {
 	arr := make([]byte, n)
 	rand.Read(arr)
 	return arr
+}
+
+// RandomHexString returns a random hexadecimal string with the size n bytes.
+func RandomHexString(n int) string {
+	bytes := RandomBytes(n)
+	encodedString := hex.EncodeToString(bytes)
+	return encodedString
 }
