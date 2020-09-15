@@ -4,37 +4,48 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 )
 
 func Commands(Input string) {
 	switch Input {
 	case "put":
-		fmt.Println("Good morning!")
+		fmt.Println("Put")
+	case "p":
+		fmt.Println("Put")
 	case "get":
-		fmt.Println("Good afternoon!")
+		fmt.Println("Get")
+	case "g":
+		fmt.Println("Get")
 	case "exit":
-		fmt.Println("Good afternoon!")
-	case "help":
+		Exit()
+	case "e":
+		Exit()
+	case "--help":
 		Help()
-	case "version":
-		fmt.Println("Good afternoon!")
+	case "--h":
+		Help()
+	case "--version":
+		Help()
+	case "--v":
+		Help()
 	default:
-		fmt.Println("Good evening!")
+		fmt.Println("Invalid command!")
 	}
 }
 
-func Put(Input string) {
+func Put() {
 	fmt.Println("Put")
 
 }
 
-func Get(Input string) {
+func Get() {
 	fmt.Println("Get")
 
 }
 
-func Exit(Input string) {
-	fmt.Println("Exit")
+func Exit() {
+	os.Exit(3)
 
 }
 
