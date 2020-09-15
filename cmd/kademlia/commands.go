@@ -9,16 +9,25 @@ import (
 	"github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
-func Commands(node kademlia.Kademlia, Input string) {
-	switch Input {
+func Commands(node kademlia.Kademlia, commands []string) {
+
+	switch commands[0] {
 	case "put":
-		Put(node, Input)
+		if len(commands) == 2 {
+			Put(node, commands[1])
+		}
 	case "p":
-		Put(node, Input)
+		if len(commands) == 2 {
+			Put(node, commands[1])
+		}
 	case "get":
-		Get(node, Input)
+		if len(commands) == 2 {
+			Get(node, commands[1])
+		}
 	case "g":
-		Get(node, Input)
+		if len(commands) == 2 {
+			Get(node, commands[1])
+		}
 	case "exit":
 		Exit()
 	case "e":

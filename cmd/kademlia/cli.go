@@ -18,7 +18,10 @@ func Cli(node kademlia.Kademlia) {
 		if trimInput == "\n" || trimInput == "" {
 			continue
 		} else {
-			Commands(node, trimInput)
+			commands := strings.Fields(trimInput)
+
+			Commands(node, commands)
+
 		}
 
 	}
