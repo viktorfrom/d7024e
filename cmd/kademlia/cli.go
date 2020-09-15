@@ -1,70 +1,28 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	"bufio"
 	"os"
 	"strings"
 
-	"github.com/urfave/cli"
+	"github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
-var app = cli.NewApp()
+func Cli(node kademlia.Kademlia) {
+	reader := bufio.NewReader(os.Stdin)
 
-var str = []string{""}
+	for {
+		input, _ := reader.ReadString('\n')
+		trimInput := strings.TrimSpace(input)
 
-func info() {
-	app.Name = "Kademlia CLI"
-	app.Usage = "An example prototype CLI for Kademlia instructions"
-	app.Author = "viktorfrom, markhakansson, 97gushan"
-	app.Version = "1.0.0"
-}
+		if trimInput == "\n" || trimInput == "" {
+			continue
+		} else {
+			commands := strings.Fields(trimInput)
 
-func commands() {
-	app.Commands = []cli.Command{
-		{
-			Name:    "exit",
-			Aliases: []string{"e"},
-			Usage:   "Terminates specified node",
-			Action: func(c *cli.Context) {
-				value := "node value" // TODO: retrieve actual value
-				content := append(str, value)
-				m := strings.Join(content, " ")
-				fmt.Println(m)
-			},
-		},
-		{
-			Name:    "get",
-			Aliases: []string{"g"},
-			Usage:   "Retrieves content of specified node",
-			Action: func(c *cli.Context) {
-				value := "node value" // TODO: retrieve actual value
-				content := append(str, value)
-				m := strings.Join(content, " ")
-				fmt.Println(m)
-			},
-		},
-		{
-			Name:    "put",
-			Aliases: []string{"p"},
-			Usage:   "Appends node and content to network",
-			Action: func(c *cli.Context) {
-				value := "node value" // TODO: retrieve actual value
-				content := append(str, value)
-				m := strings.Join(content, " ")
-				fmt.Println(m)
-			},
-		},
-	}
-}
+			Commands(node, commands)
 
-// StartCli TODO
-func StartCli() {
-	info()
-	commands()
+		}
 
-	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err)
 	}
 }
