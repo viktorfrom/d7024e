@@ -2,82 +2,22 @@ package main
 
 import (
 	"bufio"
-	"fmt"
-	"log"
 	"os"
 	"strings"
-
-	"github.com/urfave/cli"
 )
 
-var app = cli.NewApp()
-
-var str = []string{""}
-
-func info() {
-	app.Name = "Kademlia CLI"
-	app.Usage = "An example prototype CLI for Kademlia instructions"
-	app.Author = "viktorfrom, markhakansson, 97gushan"
-	app.Version = "1.0.0"
-}
-
-func commands() {
-	app.Commands = []cli.Command{
-		{
-			Name:    "exit",
-			Aliases: []string{"e"},
-			Usage:   "Terminates specified node",
-			Action: func(c *cli.Context) {
-				value := "node value" // TODO: retrieve actual value
-				content := append(str, value)
-				m := strings.Join(content, " ")
-				fmt.Println(m)
-			},
-		},
-		{
-			Name:    "get",
-			Aliases: []string{"g"},
-			Usage:   "Retrieves content of specified node",
-			Action: func(c *cli.Context) {
-				value := "node value" // TODO: retrieve actual value
-				content := append(str, value)
-				m := strings.Join(content, " ")
-				fmt.Println(m)
-			},
-		},
-		{
-			Name:    "put",
-			Aliases: []string{"p"},
-			Usage:   "Appends node and content to network",
-			Action: func(c *cli.Context) {
-				value := "node value" // TODO: retrieve actual value
-				content := append(str, value)
-				m := strings.Join(content, " ")
-				fmt.Println(m)
-			},
-		},
-	}
-}
-
-func StartCli() {
+func Cli() {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
 		input, _ := reader.ReadString('\n')
-		if input == "\n" || input == "" {
-			// fmt.Print(">> ")
+		trimInput := strings.TrimSpace(input)
+
+		if trimInput == "\n" || trimInput == "" {
 			continue
 		} else {
-			// str = append(str, input)
-			fmt.Print("str = ", str)
+			Commands(trimInput)
 
-			info()
-			commands()
-
-			err := app.Run(os.Args)
-			if err != nil {
-				log.Fatal(err)
-			}
 		}
 
 	}

@@ -11,5 +11,5 @@ func main() {
 
 	node := kademlia.Kademlia{}
 	go node.InitNode(kademlia.NewRandomKademliaID())
-	StartCli()
+	Cli()
 }
