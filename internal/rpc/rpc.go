@@ -61,11 +61,8 @@ func validateRPCType(rpc RPCType) error {
 func MarshalRPC(rpc RPC) ([]byte, error) {
 	var data []byte
 	data, err := json.Marshal(rpc)
-	if err != nil {
-		return []byte{}, err
-	}
 
-	return data, nil
+	return data, err
 }
 
 // UnmarshalRPC deserializes the given byte array and returns an RPC
