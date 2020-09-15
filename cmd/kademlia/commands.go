@@ -5,43 +5,45 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
-func Commands(Input string) {
+func Commands(node kademlia.Kademlia, Input string) {
 	switch Input {
 	case "put":
-		fmt.Println("Put")
+		Put(node, Input)
 	case "p":
-		fmt.Println("Put")
+		Put(node, Input)
 	case "get":
-		fmt.Println("Get")
+		Get(node, Input)
 	case "g":
-		fmt.Println("Get")
+		Get(node, Input)
 	case "exit":
 		Exit()
 	case "e":
 		Exit()
-	case "--help":
+	case "help":
 		Help()
-	case "--h":
+	case "h":
 		Help()
-	case "--version":
+	case "version":
 		Help()
-	case "--v":
+	case "v":
 		Help()
 	default:
 		fmt.Println("Invalid command!")
 	}
 }
 
-func Put() {
-	fmt.Println("Put")
-
+func Put(node kademlia.Kademlia, Input string) {
+	// Convert string to []byte
+	data := []byte(Input)
+	node.Store(data)
 }
 
-func Get() {
-	fmt.Println("Get")
-
+func Get(node kademlia.Kademlia, hash string) {
+	node.LookupData(hash)
 }
 
 func Exit() {

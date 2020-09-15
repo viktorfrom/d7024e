@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"os"
 	"strings"
+
+	"github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
-func Cli() {
+func Cli(node kademlia.Kademlia) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
@@ -16,7 +18,7 @@ func Cli() {
 		if trimInput == "\n" || trimInput == "" {
 			continue
 		} else {
-			Commands(trimInput)
+			Commands(node, trimInput)
 		}
 
 	}

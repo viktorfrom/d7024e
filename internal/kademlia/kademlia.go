@@ -1,5 +1,7 @@
 package kademlia
 
+import "fmt"
+
 type Kademlia struct {
 	RT      *RoutingTable
 	network Network
@@ -21,9 +23,9 @@ func (kademlia *Kademlia) LookupContact(target *Contact) {
 }
 
 func (kademlia *Kademlia) LookupData(hash string) {
-	// TODO
+	fmt.Println("hash = ", hash)
 }
 
 func (kademlia *Kademlia) Store(data []byte) {
-	// TODO
+	fmt.Println("hash = ", data)
 }
