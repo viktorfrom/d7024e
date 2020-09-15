@@ -36,6 +36,8 @@ func (network *Network) GetLocalIP() string {
 	return ""
 }
 
+// Listen listens on the given ip and port. If it fails to connect
+// an error will be returned.
 func (network *Network) Listen(ip string, port string) error {
 	portAsInt, _ := strconv.Atoi(port)
 	listenAddr := &net.UDPAddr{IP: net.ParseIP(ip), Port: portAsInt, Zone: ""}
