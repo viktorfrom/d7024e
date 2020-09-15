@@ -35,6 +35,18 @@ func TestRPCValidateID(t *testing.T) {
 	assert.Equal(t, originalID, newID)
 }
 
+func TestEmptyRPC(t *testing.T) {
+	originalRPC := RPC{}
+
+	data, err := MarshalRPC(originalRPC)
+	assert.Nil(t, err)
+
+	returnedRPC, err := UnmarshalRPC(data)
+
+	assert.Nil(t, err)
+	assert.Equal(t, &originalRPC, returnedRPC)
+}
+
 func TestNewRPCCorrectTypes(t *testing.T) {
 	msg := []byte("good bye")
 
