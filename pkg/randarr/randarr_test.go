@@ -1,6 +1,7 @@
 package randarr
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,18 +20,17 @@ func TestByteArrayCorrectLength(t *testing.T) {
 }
 
 func TestHexStrCorrectLength(t *testing.T) {
-	zero, _ := RandomHexString(0)
-	ten, _ := RandomHexString(10)
-	twenty, _ := RandomHexString(20)
-	thirty, _ := RandomHexString(30)
+	zeroHex := RandomHexString(0)
+	tenHex := RandomHexString(10)
+	twentyHex := RandomHexString(20)
+	thirtyHex := RandomHexString(30)
 
-	assert.Equal(t, 0, len(zero))
-	assert.Equal(t, 10, len([]byte(ten)))
-	assert.Equal(t, 20, len([]byte(twenty)))
-	assert.Equal(t, 30, len([]byte(thirty)))
-}
+	ten, _ := hex.DecodeString(tenHex)
+	twenty, _ := hex.DecodeString(twentyHex)
+	thirty, _ := hex.DecodeString(thirtyHex)
 
-func TestHexStrOddNumber(t *testing.T) {
-	_, err := RandomHexString(3)
-	assert.Error(t, err)
+	assert.Equal(t, 0, len(zeroHex))
+	assert.Equal(t, 10, len(ten))
+	assert.Equal(t, 20, len(twenty))
+	assert.Equal(t, 30, len(thirty))
 }
