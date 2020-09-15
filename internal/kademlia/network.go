@@ -3,6 +3,9 @@ package kademlia
 import (
 	"errors"
 	"net"
+	"strconv"
+
+	. "github.com/viktorfrom/d7024e-kademlia/internal/rpc"
 )
 
 const (
@@ -33,10 +36,9 @@ func (network *Network) GetLocalIP() string {
 	return ""
 }
 
-type Network struct{}
-
-func Listen(ip string, port int) error {
-	listenAddr := &net.UDPAddr{IP: net.ParseIP(ip), Port: port, Zone: ""}
+func (network *Network) Listen(ip string, port string) error {
+	portAsInt, _ := strconv.Atoi(port)
+	listenAddr := &net.UDPAddr{IP: net.ParseIP(ip), Port: portAsInt, Zone: ""}
 
 	conn, err := net.ListenUDP(udpNetwork, listenAddr)
 	if err != nil {
