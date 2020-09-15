@@ -19,7 +19,7 @@ func TestNewRoutingTable(t *testing.T) {
 	}
 }
 
-func TestRoutingTable(t *testing.T) {
+func TestSmallRoutingTable(t *testing.T) {
 	rt := NewRoutingTable(NewContact(NewKademliaID("FFFFFFFF00000000000000000000000000000000"), "localhost:8000"))
 
 	c1 := NewContact(NewKademliaID("1111111400000000000000000000000000000000"), "localhost:8002")
@@ -27,7 +27,6 @@ func TestRoutingTable(t *testing.T) {
 	rt.AddContact(NewContact(NewKademliaID("FFFFFFFF00000000000000000000000000000000"), "localhost:8001"))
 	rt.AddContact(NewContact(NewKademliaID("1111111100000000000000000000000000000000"), "localhost:8002"))
 	rt.AddContact(NewContact(NewKademliaID("1111111200000000000000000000000000000000"), "localhost:8002"))
-	rt.AddContact(NewContact(NewKademliaID("1111111300000000000000000000000000000000"), "localhost:8002"))
 	rt.AddContact(c1)
 	rt.AddContact(c2)
 
@@ -35,6 +34,25 @@ func TestRoutingTable(t *testing.T) {
 
 	assert.Equal(t, c2.ID, contacts[0].ID)
 	assert.Equal(t, c1.ID, contacts[1].ID)
+
+	rt.AddContact(NewContact(NewRandomKademliaID(), "localhost:8002"))
+	rt.AddContact(NewContact(NewRandomKademliaID(), "localhost:8002"))
+
+	contacts = rt.FindClosestContacts(NewRandomKademliaID(), 10)
+	assert.NotNil(t, contacts)
+}
+
+func TestBigRoutingTable(t *testing.T) {
+	rt := NewRoutingTable(NewContact(NewKademliaID("FFFFFFFF00000000000000000000000000000000"), "localhost:8000"))
+
+	for i := 0; i < 1000; i++ {
+		rt.AddContact(NewContact(NewRandomKademliaID(), "localhost:8001"))
+	}
+
+	contacts := rt.FindClosestContacts(NewKademliaID("2111111400000000000000000000000000000000"), 20)
+	assert.NotNil(t, contacts)
+	contacts = rt.FindClosestContacts(NewKademliaID("2111111400000000000000000000000000000000"), 200)
+	assert.NotNil(t, contacts)
 }
 
 func TestGetBucketIndex(t *testing.T) {
