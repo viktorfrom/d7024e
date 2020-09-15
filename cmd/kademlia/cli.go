@@ -17,7 +17,6 @@ func Cli() {
 			continue
 		} else {
 			Commands(trimInput)
-
 		}
 
 	}
