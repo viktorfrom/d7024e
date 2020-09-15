@@ -44,14 +44,15 @@ func Listen(ip string, port int) error {
 	}
 	defer conn.Close()
 
-	err = handleReceivedRPCs(conn)
+	err = handleIncomingRPCS(conn)
 	if err != nil {
 		return err
 	}
-	return err
+
+	return nil
 }
 
-func handleReceivedRPCs(conn *net.UDPConn) error {
+func handleIncomingRPCS(conn *net.UDPConn) error {
 	readBuffer := make([]byte, 1024)
 
 	for {
@@ -72,10 +73,11 @@ func handleReceivedRPCs(conn *net.UDPConn) error {
 }
 
 func (network *Network) sendRPC(contact *Contact, rpcType RPCType, data []byte) (*RPC, error) {
-	rpc := NewRPC(rpcType, data)
+	rpc, _ := NewRPC(rpcType, data)
 	sendID := *rpc.ID
+	readBuffer := make([]byte, 1024)
 
-	msg, err := MarshalRPC(rpc)
+	msg, err := MarshalRPC(*rpc)
 	if err != nil {
 		return nil, err
 	}
@@ -96,8 +98,6 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, data []byte) 
 		return nil, err
 	}
 
-	// Below should be moved to some place else
-	readBuffer := make([]byte, 1024)
 	bytesRead, receiveAddr, err := conn.ReadFromUDP(readBuffer)
 	if err != nil {
 		return nil, err
