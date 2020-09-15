@@ -15,6 +15,12 @@ func TestNewKademliaID(t *testing.T) {
 	assert.Equal(t, id2.String(), "2111111400000000000000000000000000000000")
 }
 
+func TestNewRandomKademliaID(t *testing.T) {
+	id1 := NewRandomKademliaID()
+
+	assert.NotNil(t, id1)
+}
+
 func TestKademliaIDDistance(t *testing.T) {
 	id1 := NewKademliaID("FFFFFFFF00000000000000000000000000000000")
 	id2 := NewKademliaID("1111111100000000000000000000000000000000")
@@ -42,4 +48,5 @@ func TestKademliaIDLess(t *testing.T) {
 	assert.Equal(t, id3.Less(id1), true)
 	assert.Equal(t, id1.Less(id3), false)
 	assert.Equal(t, id1.Less(id2), false)
+	assert.Equal(t, id1.Less(id1), false)
 }
