@@ -24,8 +24,10 @@ func (kademlia *Kademlia) LookupContact(target *Contact) {
 
 func (kademlia *Kademlia) LookupData(hash string) {
 	fmt.Println("hash = ", hash)
+	// TODO
 }
 
 func (kademlia *Kademlia) Store(data []byte) {
 	fmt.Println("hash = ", data)
+	// TODO
 }

@@ -57,7 +57,6 @@ func Get(node kademlia.Kademlia, hash string) {
 
 func Exit() {
 	os.Exit(3)
-
 }
 
 func Help() {
