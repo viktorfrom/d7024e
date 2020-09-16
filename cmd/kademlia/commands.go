@@ -56,7 +56,7 @@ func Put(node kademlia.Kademlia, input string) {
 }
 
 func Ping(node kademlia.Kademlia, input string) {
-	node.Ping(input)
+	node.Ping()
 }
 
 func Get(node kademlia.Kademlia, hash string) {

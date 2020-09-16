@@ -37,17 +37,18 @@ func (kademlia *Kademlia) Store(data []byte) {
 	// TODO
 }
 
-func (kademlia *Kademlia) Ping(input string) {
-	target := kademlia.RT.FindClosestContacts(kademlia.RT.me.ID, 1)[0]
-	rpc, err := kademlia.network.SendPingMessage(&target, &kademlia.RT.me)
+func (kademlia *Kademlia) Ping() {
+	target := &kademlia.RT.FindClosestContacts(kademlia.RT.me.ID, bucketSize)[0]
+	rpc, err := kademlia.network.SendPingMessage(target, &kademlia.RT.me)
 
 	fmt.Println("Send ping")
 
 	if err != nil {
 		fmt.Println(err)
+		kademlia.RT.RemoveContact(*target)
 	} else if *rpc.Type == "OK" {
-		kademlia.RT.AddContact(target)
 		fmt.Println("Add " + target.ID.String() + " to bucket id: " + strconv.Itoa(kademlia.RT.getBucketIndex(target.ID)))
+		kademlia.RT.AddContact(*target)
 	} else {
 		fmt.Print("CAOS?")
 	}
