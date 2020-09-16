@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 	"strconv"
+	"time"
 
 	. "github.com/viktorfrom/d7024e-kademlia/internal/rpc"
 )
@@ -16,6 +17,9 @@ const (
 	errDiffAddr string = "receive address not same as send address"
 	errDiffID   string = "rpc ID was different"
 )
+
+// the time before a RPC call times out
+const timeout = 10 * time.Second
 
 type Network struct{}
 
@@ -96,6 +100,9 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, data []byte) 
 		return nil, err
 	}
 	defer conn.Close()
+
+	conn.SetDeadline(time.Now().Add(timeout))
+	conn.SetReadDeadline(time.Now().Add(timeout))
 
 	_, err = conn.Write(msg)
 	if err != nil {
