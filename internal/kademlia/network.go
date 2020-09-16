@@ -152,8 +152,12 @@ func (network *Network) SendPingMessage(contact *Contact, sender *Contact) (*RPC
 }
 
 // SendFindContactMessage TODO
-func (network *Network) SendFindContactMessage(contact *Contact) {
-	// TODO
+func (network *Network) SendFindContactMessage(contact *Contact) (*RPC, error) {
+	rpc, err := network.sendRPC(contact, FindNode, []byte{})
+	if err != nil {
+		return nil, err
+	}
+	return rpc, nil
 }
 
 // SendFindDataMessage TODO
