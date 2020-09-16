@@ -8,7 +8,7 @@ import (
 
 func TestRPCUnmarshal(t *testing.T) {
 	msg := "hello"
-	originalRPC, _ := NewRPC(Ping, []byte(msg))
+	originalRPC, _ := NewRPC(Ping, "10.0.8.1", []byte(msg))
 
 	data, _ := MarshalRPC(*originalRPC)
 	marshalledRPC, _ := UnmarshalRPC(data)
@@ -25,7 +25,7 @@ func TestRPCWrongDataUnmarshal(t *testing.T) {
 
 func TestRPCValidateID(t *testing.T) {
 	msg := []byte("hello")
-	originalRPC, _ := NewRPC(Store, msg)
+	originalRPC, _ := NewRPC(Store, "10.0.8.1", msg)
 	originalID := *originalRPC.ID
 
 	data, _ := MarshalRPC(*originalRPC)
@@ -51,13 +51,13 @@ func TestNewRPCCorrectTypes(t *testing.T) {
 	msg := []byte("good bye")
 
 	for _, rpcType := range rpcTypes {
-		_, err := NewRPC(rpcType, msg)
+		_, err := NewRPC(rpcType, "10.0.8.1", msg)
 		assert.NoError(t, err)
 	}
 }
 
 func TestNewRPCWrongType(t *testing.T) {
 	msg := []byte("good bye")
-	_, err := NewRPC("wrong type", msg)
+	_, err := NewRPC("wrong type", "10.0.8.1", msg)
 	assert.Error(t, err)
 }

@@ -10,7 +10,7 @@ func main() {
 	fmt.Println("Booting Kademlia....")
 
 	node := kademlia.Kademlia{}
-	go node.InitNode(kademlia.NewRandomKademliaID())
+	node.InitNode(kademlia.NewRandomKademliaID())
 
 	Cli(node)
 }
