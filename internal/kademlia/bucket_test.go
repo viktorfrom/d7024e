@@ -41,21 +41,6 @@ func TestBucketAddContact(t *testing.T) {
 	assert.Equal(t, contact1, bucket1.list.Front().Value)
 }
 
-func TestBucketRemoveContact(t *testing.T) {
-	bucket1 := newBucket()
-
-	kID := NewRandomKademliaID()
-	contact1 := NewContact(kID, "10.0.8.2")
-
-	assert.Nil(t, bucket1.list.Front())
-	bucket1.AddContact(contact1)
-	assert.Equal(t, contact1, bucket1.list.Front().Value)
-
-	bucket1.RemoveContact(contact1)
-	assert.Nil(t, bucket1.list.Front())
-
-}
-
 func TestBucketGetContact(t *testing.T) {
 	bucket1 := newBucket()
 	bucket1 = fillBucket(bucket1)

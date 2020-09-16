@@ -20,10 +20,6 @@ func Commands(node kademlia.Kademlia, commands []string) {
 		if len(commands) == 2 {
 			Put(node, commands[1])
 		}
-	case "ping":
-		if len(commands) == 2 {
-			Ping(node, commands[1])
-		}
 	case "get":
 		if len(commands) == 2 {
 			Get(node, commands[1])
@@ -49,14 +45,10 @@ func Commands(node kademlia.Kademlia, commands []string) {
 	}
 }
 
-func Put(node kademlia.Kademlia, input string) {
+func Put(node kademlia.Kademlia, Input string) {
 	// Convert string to []byte
-	data := []byte(input)
+	data := []byte(Input)
 	node.Store(data)
-}
-
-func Ping(node kademlia.Kademlia, input string) {
-	node.Ping()
 }
 
 func Get(node kademlia.Kademlia, hash string) {

@@ -31,11 +31,10 @@ type RPC struct {
 	Type    *RPCType `json:"type"`
 	Payload *string  `json:"payload"`
 	ID      *string  `json:"id"`
-	Sender  *string  `json:"senderID"`
 }
 
 // NewRPC creates a new RPC with a random ID added to it
-func NewRPC(rpc RPCType, senderID string, data []byte) (*RPC, error) {
+func NewRPC(rpc RPCType, data []byte) (*RPC, error) {
 	err := validateRPCType(rpc)
 	if err != nil {
 		return nil, err
@@ -44,7 +43,7 @@ func NewRPC(rpc RPCType, senderID string, data []byte) (*RPC, error) {
 	payload := string(data)
 	randomStr := randarr.RandomHexString(20)
 	randomID := string(randomStr)
-	newRPC := RPC{&rpc, &payload, &randomID, &senderID}
+	newRPC := RPC{&rpc, &payload, &randomID}
 
 	return &newRPC, nil
 }

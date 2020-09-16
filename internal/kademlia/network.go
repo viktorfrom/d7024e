@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net"
 	"strconv"
-	"time"
 
 	. "github.com/viktorfrom/d7024e-kademlia/internal/rpc"
 )
@@ -18,12 +17,7 @@ const (
 	errDiffID   string = "rpc ID was different"
 )
 
-// the time before a RPC call times out
-const timeout = 10 * time.Second
-
-type Network struct {
-	kademlia *Kademlia
-}
+type Network struct{}
 
 // GetLocalIP returns the IP of the Node in the Docker Network
 func (network *Network) GetLocalIP() string {
@@ -54,7 +48,7 @@ func (network *Network) Listen(ip string, port string) error {
 	}
 	defer conn.Close()
 
-	err = network.handleIncomingRPCS(conn, ip)
+	err = handleIncomingRPCS(conn)
 	if err != nil {
 		return err
 	}
@@ -62,7 +56,7 @@ func (network *Network) Listen(ip string, port string) error {
 	return nil
 }
 
-func (network *Network) handleIncomingRPCS(conn *net.UDPConn, senderIP string) error {
+func handleIncomingRPCS(conn *net.UDPConn) error {
 	readBuffer := make([]byte, 1024)
 
 	for {
@@ -76,19 +70,15 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn, senderIP string) e
 			return err
 		}
 
-		sender := NewKademliaID(*rpc.Sender)
-		contact := NewContact(sender, senderIP)
-		network.kademlia.RT.AddContact(contact)
-
 		*rpc.Type = OK
 		data, _ := MarshalRPC(*rpc)
 		conn.WriteToUDP(data, receiveAddr)
 	}
 }
 
-func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *KademliaID, data []byte) (*RPC, error) {
-	rpc, _ := NewRPC(rpcType, senderID.String(), data)
-	sendRPCID := *rpc.ID
+func (network *Network) sendRPC(contact *Contact, rpcType RPCType, data []byte) (*RPC, error) {
+	rpc, _ := NewRPC(rpcType, data)
+	sendID := *rpc.ID
 	readBuffer := make([]byte, 1024)
 
 	msg, err := MarshalRPC(*rpc)
@@ -106,9 +96,6 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *Kad
 		return nil, err
 	}
 	defer conn.Close()
-
-	conn.SetDeadline(time.Now().Add(timeout))
-	conn.SetReadDeadline(time.Now().Add(timeout))
 
 	_, err = conn.Write(msg)
 	if err != nil {
@@ -133,7 +120,7 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *Kad
 		return nil, err
 	}
 
-	if sendRPCID != *reply.ID {
+	if sendID != *reply.ID {
 		return nil, errors.New(errDiffID)
 	}
 
@@ -142,8 +129,8 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *Kad
 
 // SendPingMessage pings a contact and returns the response. Returns an
 // error if the contact fails to respond.
-func (network *Network) SendPingMessage(contact *Contact, sender *Contact) (*RPC, error) {
-	rpc, err := network.sendRPC(contact, Ping, sender.ID, []byte(pingMsg))
+func (network *Network) SendPingMessage(contact *Contact) (*RPC, error) {
+	rpc, err := network.sendRPC(contact, Ping, []byte(pingMsg))
 	if err != nil {
 		return nil, err
 	}
