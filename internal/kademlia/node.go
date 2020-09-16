@@ -12,8 +12,8 @@ type Node struct {
 // InitNode initializes the Kademlia Node
 // with a Routing Table and a Network
 func (kademlia *Node) InitNode(id *NodeID) {
-	kademlia.network = Network{kademlia}
-	ip := kademlia.network.GetLocalIP()
+	kademlia.network = NewNetwork(kademlia)
+	ip := kademlia.network.ip
 	go kademlia.network.Listen(ip, "8080")
 
 	me := NewContact(id, ip+":8080")

@@ -16,6 +16,7 @@ const (
 	errNoReply  string = "did not receive a reply"
 	errDiffAddr string = "receive address not same as send address"
 	errDiffID   string = "rpc ID was different"
+	errNilRPC   string = "rpc struct is nil"
 )
 
 // the time before a RPC call times out
@@ -23,6 +24,14 @@ const timeout = 10 * time.Second
 
 type Network struct {
 	kademlia *Node
+	ip       string
+}
+
+func NewNetwork(kademlia *Kademlia) Network {
+	network := Network{}
+	network.kademlia = kademlia
+	network.ip = network.GetLocalIP()
+	return network
 }
 
 // GetLocalIP returns the IP of the Node in the Docker Network
@@ -86,7 +95,24 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn, senderIP string) e
 	}
 }
 
-func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *NodeID, data []byte) (*RPC, error) {
+func (network *Network) handleIncomingPingRPC(rpc *RPC) (*RPC, error) {
+	if rpc == nil {
+		return nil, errors.New(errNilRPC)
+	}
+
+	sender := NewKademliaID(*rpc.Sender)
+	contact := NewContact(sender, *rpc.)
+	network.kademlia.RT.AddContact(contact)
+	*rpc.Type = OK
+
+	return rpc, nil
+}
+
+func (network *Network) handleIncomingFindNodeRPC(rpc RPC) (*RPC, error) {
+	return &rpc, nil
+}
+
+func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *KademliaID, data []byte) (*RPC, error) {
 	rpc, _ := NewRPC(rpcType, senderID.String(), data)
 	sendRPCID := *rpc.ID
 	readBuffer := make([]byte, 1024)
@@ -152,8 +178,8 @@ func (network *Network) SendPingMessage(contact *Contact, sender *Contact) (*RPC
 }
 
 // SendFindContactMessage TODO
-func (network *Network) SendFindContactMessage(contact *Contact) (*RPC, error) {
-	rpc, err := network.sendRPC(contact, FindNode, []byte{})
+func (network *Network) SendFindContactMessage(contact *Contact, sender *Contact) (*RPC, error) {
+	rpc, err := network.sendRPC(contact, FindNode, sender.ID, []byte{})
 	if err != nil {
 		return nil, err
 	}
