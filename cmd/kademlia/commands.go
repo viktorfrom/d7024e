@@ -16,13 +16,13 @@ func Commands(node kademlia.Node, commands []string) {
 		if len(commands) == 2 {
 			Put(node, commands[1])
 		} else {
-			fmt.Println("Missing content!")
+			fmt.Println("No argument!")
 		}
 	case "p":
 		if len(commands) == 2 {
 			Put(node, commands[1])
 		} else {
-			fmt.Println("Missing content!")
+			fmt.Println("No argument!")
 		}
 	case "ping":
 		if len(commands) == 2 {
@@ -31,10 +31,14 @@ func Commands(node kademlia.Node, commands []string) {
 	case "get":
 		if len(commands) == 2 {
 			Get(node, commands[1])
+		} else {
+			fmt.Println("No argument!")
 		}
 	case "g":
 		if len(commands) == 2 {
 			Get(node, commands[1])
+		} else {
+			fmt.Println("No argument!")
 		}
 	case "exit":
 		Exit()
