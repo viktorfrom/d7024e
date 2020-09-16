@@ -18,7 +18,9 @@ func (kademlia *Kademlia) InitNode(id *KademliaID) {
 	go kademlia.network.Listen(ip, "8080")
 
 	me := NewContact(id, ip+":8080")
+	rendezvousNode := NewContact(NewKademliaID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.3:8080")
 	kademlia.RT = NewRoutingTable(me)
+	kademlia.RT.AddContact(rendezvousNode)
 }
 
 func (kademlia *Kademlia) LookupContact(target *Contact) {
@@ -36,8 +38,10 @@ func (kademlia *Kademlia) Store(data []byte) {
 }
 
 func (kademlia *Kademlia) Ping(input string) {
-	target := NewContact(NewRandomKademliaID(), input+":8080")
+	target := kademlia.RT.FindClosestContacts(kademlia.RT.me.ID, 1)[0]
 	rpc, err := kademlia.network.SendPingMessage(&target, &kademlia.RT.me)
+
+	fmt.Println("Send ping")
 
 	if err != nil {
 		fmt.Println(err)
