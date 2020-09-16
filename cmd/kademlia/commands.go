@@ -15,10 +15,14 @@ func Commands(node kademlia.Node, commands []string) {
 	case "put":
 		if len(commands) == 2 {
 			Put(node, commands[1])
+		} else {
+			fmt.Println("Missing content!")
 		}
 	case "p":
 		if len(commands) == 2 {
 			Put(node, commands[1])
+		} else {
+			fmt.Println("Missing content!")
 		}
 	case "ping":
 		if len(commands) == 2 {
