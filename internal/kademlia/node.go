@@ -22,16 +22,16 @@ func (kademlia *Kademlia) InitNode(id *KademliaID) {
 	kademlia.RT.AddContact(rendezvousNode)
 }
 
-func (kademlia *Kademlia) LookupContact(target *Contact) {
+func (kademlia *Kademlia) NodeLookup(target *Contact) {
 	// TODO
 }
 
-func (kademlia *Kademlia) LookupData(hash string) {
+func (kademlia *Kademlia) FindValue(hash string) {
 	fmt.Println("hash = ", hash)
 	// TODO
 }
 
-func (kademlia *Kademlia) Store(data []byte) {
+func (kademlia *Kademlia) StoreValue(data []byte) {
 	fmt.Println("hash = ", data)
 	// TODO
 }

@@ -52,7 +52,7 @@ func Commands(node kademlia.Kademlia, commands []string) {
 func Put(node kademlia.Kademlia, input string) {
 	// Convert string to []byte
 	data := []byte(input)
-	node.Store(data)
+	node.StoreValue(data)
 }
 
 func Ping(node kademlia.Kademlia, input string) {
@@ -60,7 +60,7 @@ func Ping(node kademlia.Kademlia, input string) {
 }
 
 func Get(node kademlia.Kademlia, hash string) {
-	node.LookupData(hash)
+	node.FindValue(hash)
 }
 
 func Exit() {
