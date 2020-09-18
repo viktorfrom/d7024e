@@ -76,3 +76,7 @@ func (routingTable *RoutingTable) getBucketIndex(id *NodeID) int {
 func (routingTable *RoutingTable) GetMe() Contact {
 	return routingTable.me
 }
+
+func (routingTable *RoutingTable) GetMeID() *KademliaID {
+	return routingTable.me.ID
+}
