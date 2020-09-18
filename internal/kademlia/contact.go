@@ -8,8 +8,8 @@ import (
 // Contact definition
 // stores the NodeID, the ip address and the distance
 type Contact struct {
-	ID       *NodeID
-	Address  string
+	ID       *NodeID `json:"id"`
+	Address  string  `json:"address"`
 	distance *NodeID
 }
 

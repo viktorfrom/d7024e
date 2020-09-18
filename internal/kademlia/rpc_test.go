@@ -1,4 +1,4 @@
-package rpc
+package kademlia
 
 import (
 	"testing"
@@ -8,12 +8,15 @@ import (
 
 func TestRPCUnmarshal(t *testing.T) {
 	msg := "hello"
-	originalRPC, _ := NewRPC(Ping, "10.0.8.1", []byte(msg))
+	contact := NewContact(NewRandomKademliaID(), "10.0.8.2")
+	payload := Payload{&msg, []Contact{contact}}
+	originalRPC, _ := NewRPC(Ping, "10.0.8.1", payload)
 
 	data, _ := MarshalRPC(*originalRPC)
 	marshalledRPC, _ := UnmarshalRPC(data)
 
-	assert.Equal(t, msg, *marshalledRPC.Payload)
+	assert.Equal(t, msg, *marshalledRPC.Payload.Value)
+	assert.Equal(t, contact, marshalledRPC.Payload.Contacts[0])
 	assert.Equal(t, Ping, *marshalledRPC.Type)
 }
 
@@ -24,8 +27,9 @@ func TestRPCWrongDataUnmarshal(t *testing.T) {
 }
 
 func TestRPCValidateID(t *testing.T) {
-	msg := []byte("hello")
-	originalRPC, _ := NewRPC(Store, "10.0.8.1", msg)
+	msg := "hello"
+	payload := Payload{&msg, nil}
+	originalRPC, _ := NewRPC(Store, "10.0.8.1", payload)
 	originalID := *originalRPC.ID
 
 	data, _ := MarshalRPC(*originalRPC)
@@ -48,16 +52,19 @@ func TestEmptyRPC(t *testing.T) {
 }
 
 func TestNewRPCCorrectTypes(t *testing.T) {
-	msg := []byte("good bye")
+	msg := "good bye"
+	payload := Payload{&msg, nil}
 
 	for _, rpcType := range rpcTypes {
-		_, err := NewRPC(rpcType, "10.0.8.1", msg)
+		_, err := NewRPC(rpcType, "10.0.8.1", payload)
 		assert.NoError(t, err)
 	}
 }
 
 func TestNewRPCWrongType(t *testing.T) {
-	msg := []byte("good bye")
-	_, err := NewRPC("wrong type", "10.0.8.1", msg)
+	msg := "good bye"
+	payload := Payload{&msg, nil}
+
+	_, err := NewRPC("wrong type", "10.0.8.1", payload)
 	assert.Error(t, err)
 }

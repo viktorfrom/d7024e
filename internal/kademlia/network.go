@@ -6,17 +6,24 @@ import (
 	"strconv"
 	"time"
 
-	. "github.com/viktorfrom/d7024e-kademlia/internal/rpc"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
-	udpNetwork  string = "udp4"
-	pingMsg     string = "PING"
-	pongMsg     string = "PONG"
-	errNoReply  string = "did not receive a reply"
-	errDiffAddr string = "receive address not same as send address"
-	errDiffID   string = "rpc ID was different"
-	errNilRPC   string = "rpc struct is nil"
+	// DefaultPort Default port to listen on
+	DefaultPort string = ":8080"
+	// UDPReadBufferSize Size of the UDP read buffer
+	UDPReadBufferSize int = 1024
+)
+
+const (
+	udpNetwork   string = "udp4"
+	pingMsg      string = "PING"
+	errNoReply   string = "did not receive a reply"
+	errDiffAddr  string = "receive address not same as send address"
+	errDiffID    string = "rpc ID was different"
+	errNilRPC    string = "rpc struct is nil"
+	errNoContact string = "no contact was given"
 )
 
 // the time before a RPC call times out
@@ -27,6 +34,7 @@ type Network struct {
 	ip       string
 }
 
+// NewNetwork initializes the network and sets the local IP address
 func NewNetwork(kademlia *Kademlia) Network {
 	network := Network{}
 	network.kademlia = kademlia
@@ -59,12 +67,14 @@ func (network *Network) Listen(ip string, port string) error {
 
 	conn, err := net.ListenUDP(udpNetwork, listenAddr)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 	defer conn.Close()
 
 	err = network.handleIncomingRPCS(conn, ip)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
@@ -72,17 +82,37 @@ func (network *Network) Listen(ip string, port string) error {
 }
 
 func (network *Network) handleIncomingRPCS(conn *net.UDPConn, senderIP string) error {
-	readBuffer := make([]byte, 1024)
+	readBuffer := make([]byte, UDPReadBufferSize)
 
 	for {
 		bytesRead, receiveAddr, err := conn.ReadFromUDP(readBuffer)
 		if err != nil {
-			return err
+			log.Warn(err)
+			continue
 		}
 
 		rpc, err := UnmarshalRPC(readBuffer[0:bytesRead])
 		if err != nil {
-			return err
+			log.Warn(err)
+			continue
+		}
+
+		switch *rpc.Type {
+		case Ping:
+			rpc, err = network.handleIncomingPingRPC(rpc, receiveAddr.String())
+		case Store:
+			rpc, err = network.handleIncomingStoreRPC(rpc)
+		case FindNode:
+			rpc, err = network.handleIncomingFindNodeRPC(rpc)
+		case FindValue:
+			rpc, err = network.handleIncomingFindValueRPC(rpc)
+		default:
+			continue
+		}
+
+		if err != nil {
+			log.Warn(err)
+			continue
 		}
 
 		sender := NewNodeID(*rpc.Sender)
@@ -95,25 +125,43 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn, senderIP string) e
 	}
 }
 
-func (network *Network) handleIncomingPingRPC(rpc *RPC) (*RPC, error) {
+func (network *Network) handleIncomingPingRPC(rpc *RPC, senderIP string) (*RPC, error) {
 	if rpc == nil {
 		return nil, errors.New(errNilRPC)
 	}
 
-	sender := NewKademliaID(*rpc.Sender)
-	contact := NewContact(sender, *rpc.)
+	sender := NewKademliaID(*rpc.SenderIP)
+	contact := NewContact(sender, senderIP+DefaultPort)
 	network.kademlia.RT.AddContact(contact)
 	*rpc.Type = OK
 
 	return rpc, nil
 }
 
-func (network *Network) handleIncomingFindNodeRPC(rpc RPC) (*RPC, error) {
-	return &rpc, nil
+func (network *Network) handleIncomingStoreRPC(rpc *RPC) (*RPC, error) {
+	return rpc, nil
 }
 
-func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *KademliaID, data []byte) (*RPC, error) {
-	rpc, _ := NewRPC(rpcType, senderID.String(), data)
+func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
+	if len(rpc.Payload.Contacts) == 0 {
+		return rpc, errors.New(errNoContact)
+	}
+
+	contacts := network.kademlia.RT.FindClosestContacts(rpc.Payload.Contacts[0].ID, BucketSize)
+
+	payload := Payload{nil, contacts}
+	*rpc.Payload = payload
+	*rpc.Type = OK
+
+	return rpc, nil
+}
+
+func (network *Network) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
+	return rpc, nil
+}
+
+func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *KademliaID, payload Payload) (*RPC, error) {
+	rpc, _ := NewRPC(rpcType, senderID.String(), payload)
 	sendRPCID := *rpc.ID
 	readBuffer := make([]byte, 1024)
 
@@ -166,24 +214,23 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *Kad
 	return reply, nil
 }
 
-// SendPingMessage pings a contact and returns the response. Returns an
-// error if the contact fails to respond.
+// SendPingMessage pings a contact and returns the response. `sender` is needed in case the receiving node needs information
+// about the node who sent the RPC. Returns an error if the contact fails to respond.
 func (network *Network) SendPingMessage(contact *Contact, sender *Contact) (*RPC, error) {
-	rpc, err := network.sendRPC(contact, Ping, sender.ID, []byte(pingMsg))
-	if err != nil {
-		return nil, err
-	}
+	pingMsg := pingMsg
+	payload := Payload{&pingMsg, nil}
+	rpc, err := network.sendRPC(contact, Ping, sender.ID, payload)
 
-	return rpc, nil
+	return rpc, err
 }
 
-// SendFindContactMessage TODO
+// SendFindContactMessage sends a FindNode RPC to contact. `sender` is needed in case the receiving node needs information
+// about the node who sent the RPC. Returns an error if the contact fails to respond.
 func (network *Network) SendFindContactMessage(contact *Contact, sender *Contact) (*RPC, error) {
-	rpc, err := network.sendRPC(contact, FindNode, sender.ID, []byte{})
-	if err != nil {
-		return nil, err
-	}
-	return rpc, nil
+	payload := Payload{nil, []Contact{*contact}}
+	rpc, err := network.sendRPC(contact, FindNode, sender.ID, payload)
+
+	return rpc, err
 }
 
 // SendFindDataMessage TODO
