@@ -29,7 +29,8 @@ func (kademlia *Node) InitNode(id *NodeID) {
 }
 
 func (kademlia *Node) NodeLookup(target *Contact) {
-	// TODO
+	table := kademlia.RT.FindClosestContacts(target.ID, bucketSize)
+	fmt.Println("table = ", table)
 }
 
 func (kademlia *Node) FindValue(hash string) {

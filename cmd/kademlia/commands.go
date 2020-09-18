@@ -40,6 +40,10 @@ func Commands(node kademlia.Node, commands []string) {
 		} else {
 			fmt.Println("No argument!")
 		}
+
+	case "t":
+		c := node.RT.GetMe()
+		node.LookupContact(&c)
 	case "exit":
 		Exit()
 	case "e":
