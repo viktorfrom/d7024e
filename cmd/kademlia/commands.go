@@ -9,7 +9,7 @@ import (
 	"github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
-func Commands(node kademlia.Kademlia, commands []string) {
+func Commands(node kademlia.Node, commands []string) {
 
 	switch commands[0] {
 	case "put":
@@ -49,18 +49,18 @@ func Commands(node kademlia.Kademlia, commands []string) {
 	}
 }
 
-func Put(node kademlia.Kademlia, input string) {
+func Put(node kademlia.Node, input string) {
 	// Convert string to []byte
 	data := []byte(input)
-	node.Store(data)
+	node.StoreValue(data)
 }
 
-func Ping(node kademlia.Kademlia, input string) {
+func Ping(node kademlia.Node, input string) {
 	node.Ping()
 }
 
-func Get(node kademlia.Kademlia, hash string) {
-	node.LookupData(hash)
+func Get(node kademlia.Node, hash string) {
+	node.FindValue(hash)
 }
 
 func Exit() {

@@ -8,7 +8,7 @@ import (
 	"github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
-func Cli(node kademlia.Kademlia) {
+func Cli(node kademlia.Node) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {

@@ -58,7 +58,7 @@ func (bucket *bucket) RemoveContact(contact Contact) {
 
 // GetContactAndCalcDistance returns an array of Contacts where
 // the distance has already been calculated
-func (bucket *bucket) GetContactAndCalcDistance(target *KademliaID) []Contact {
+func (bucket *bucket) GetContactAndCalcDistance(target *NodeID) []Contact {
 	var contacts []Contact
 
 	for elt := bucket.list.Front(); elt != nil; elt = elt.Next() {

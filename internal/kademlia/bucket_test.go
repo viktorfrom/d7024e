@@ -8,7 +8,7 @@ import (
 
 func fillBucket(b *bucket) *bucket {
 	for i := 0; i < bucketSize*2; i++ {
-		contact := NewContact(NewRandomKademliaID(), "10.0.8.2")
+		contact := NewContact(NewRandomNodeID(), "10.0.8.2")
 		b.AddContact(contact)
 	}
 	return b
@@ -25,7 +25,7 @@ func TestNewBucket(t *testing.T) {
 func TestBucketAddContact(t *testing.T) {
 	bucket1 := newBucket()
 
-	kID := NewRandomKademliaID()
+	kID := NewRandomNodeID()
 	contact1 := NewContact(kID, "10.0.8.2")
 
 	assert.Nil(t, bucket1.list.Front())
@@ -44,7 +44,7 @@ func TestBucketAddContact(t *testing.T) {
 func TestBucketRemoveContact(t *testing.T) {
 	bucket1 := newBucket()
 
-	kID := NewRandomKademliaID()
+	kID := NewRandomNodeID()
 	contact1 := NewContact(kID, "10.0.8.2")
 
 	assert.Nil(t, bucket1.list.Front())
@@ -61,7 +61,7 @@ func TestBucketGetContact(t *testing.T) {
 	bucket1 = fillBucket(bucket1)
 	contact1 := bucket1.list.Front().Value.(Contact)
 
-	kID := NewRandomKademliaID()
+	kID := NewRandomNodeID()
 
 	contact1.CalcDistance(kID)
 	assert.Equal(t, contact1, bucket1.GetContactAndCalcDistance(kID)[0])
@@ -71,7 +71,7 @@ func TestBucketGetContact(t *testing.T) {
 
 func TestBucketLen(t *testing.T) {
 	bucket1 := newBucket()
-	contact1 := NewContact(NewKademliaID("FFFFFFFF00000000000000000000000000000000"), "10.0.8.2")
+	contact1 := NewContact(NewNodeID("FFFFFFFF00000000000000000000000000000000"), "10.0.8.2")
 
 	assert.Equal(t, 0, bucket1.Len())
 	bucket1.AddContact(contact1)
