@@ -9,8 +9,8 @@ import (
 func main() {
 	fmt.Println("Booting Kademlia....")
 
-	node := kademlia.Kademlia{}
-	node.InitNode(kademlia.NewRandomKademliaID())
+	node := kademlia.Node{}
+	node.InitNode(kademlia.NewRandomNodeID())
 
 	Cli(node)
 }

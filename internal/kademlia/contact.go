@@ -6,21 +6,21 @@ import (
 )
 
 // Contact definition
-// stores the KademliaID, the ip address and the distance
+// stores the NodeID, the ip address and the distance
 type Contact struct {
-	ID       *KademliaID
+	ID       *NodeID
 	Address  string
-	distance *KademliaID
+	distance *NodeID
 }
 
 // NewContact returns a new instance of a Contact
-func NewContact(id *KademliaID, address string) Contact {
+func NewContact(id *NodeID, address string) Contact {
 	return Contact{id, address, nil}
 }
 
 // CalcDistance calculates the distance to the target and
 // fills the contacts distance field
-func (contact *Contact) CalcDistance(target *KademliaID) {
+func (contact *Contact) CalcDistance(target *NodeID) {
 	contact.distance = contact.ID.CalcDistance(target)
 }
 

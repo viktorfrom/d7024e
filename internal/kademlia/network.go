@@ -22,7 +22,7 @@ const (
 const timeout = 10 * time.Second
 
 type Network struct {
-	kademlia *Kademlia
+	kademlia *Node
 }
 
 // GetLocalIP returns the IP of the Node in the Docker Network
@@ -76,7 +76,7 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn, senderIP string) e
 			return err
 		}
 
-		sender := NewKademliaID(*rpc.Sender)
+		sender := NewNodeID(*rpc.Sender)
 		contact := NewContact(sender, senderIP)
 		network.kademlia.RT.AddContact(contact)
 
@@ -86,7 +86,7 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn, senderIP string) e
 	}
 }
 
-func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *KademliaID, data []byte) (*RPC, error) {
+func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *NodeID, data []byte) (*RPC, error) {
 	rpc, _ := NewRPC(rpcType, senderID.String(), data)
 	sendRPCID := *rpc.ID
 	readBuffer := make([]byte, 1024)
