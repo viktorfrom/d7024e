@@ -43,7 +43,7 @@ func Commands(node kademlia.Node, commands []string) {
 
 	case "t":
 		c := node.RT.GetMe()
-		node.LookupContact(&c)
+		node.NodeLookup(&c)
 	case "exit":
 		Exit()
 	case "e":
@@ -63,8 +63,8 @@ func Commands(node kademlia.Node, commands []string) {
 
 func Put(node kademlia.Node, input string) {
 	// Convert string to []byte
-	data := []byte(input)
-	node.StoreValue(data)
+	// data := []byte(input)
+	node.StoreValue(input)
 }
 
 func Ping(node kademlia.Node, input string) {

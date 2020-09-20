@@ -77,6 +77,6 @@ func (routingTable *RoutingTable) GetMe() Contact {
 	return routingTable.me
 }
 
-func (routingTable *RoutingTable) GetMeID() *KademliaID {
+func (routingTable *RoutingTable) GetMeID() *NodeID {
 	return routingTable.me.ID
 }
