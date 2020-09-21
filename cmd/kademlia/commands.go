@@ -62,8 +62,6 @@ func Commands(node kademlia.Node, commands []string) {
 }
 
 func Put(node kademlia.Node, input string) {
-	// Convert string to []byte
-	// data := []byte(input)
 	node.StoreValue(input)
 }
 
