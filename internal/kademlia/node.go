@@ -29,7 +29,7 @@ func (kademlia *Node) InitNode(id *NodeID) {
 }
 
 func (kademlia *Node) NodeLookup(target *Contact) {
-	table := kademlia.RT.FindClosestContacts(target.ID, bucketSize)
+	table := kademlia.RT.FindClosestContacts(target.ID, BucketSize)
 	fmt.Println("table = ", table)
 }
 
