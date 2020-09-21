@@ -4,6 +4,7 @@ import (
 	"container/list"
 )
 
+// BucketSize the `k` value in the Kademlia paper
 const BucketSize int = 5
 
 // bucket definition
