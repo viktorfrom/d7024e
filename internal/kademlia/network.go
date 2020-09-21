@@ -149,7 +149,6 @@ func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
 
 	payload := Payload{nil, contacts}
 	*rpc.Payload = payload
-	*rpc.Type = OK
 
 	return rpc, nil
 }
