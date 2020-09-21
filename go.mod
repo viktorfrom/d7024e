@@ -8,5 +8,6 @@ require github.com/stretchr/testify v1.6.1
 
 require (
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
+	github.com/sirupsen/logrus v1.6.0
 	github.com/thanhpk/randstr v1.0.4
 )

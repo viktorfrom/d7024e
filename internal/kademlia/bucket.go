@@ -4,7 +4,8 @@ import (
 	"container/list"
 )
 
-const bucketSize int = 5
+// BucketSize the `k` value in the Kademlia paper
+const BucketSize int = 5
 
 // bucket definition
 // contains a List
@@ -32,7 +33,7 @@ func (bucket *bucket) AddContact(contact Contact) {
 	}
 
 	if element == nil {
-		if bucket.list.Len() < bucketSize {
+		if bucket.list.Len() < BucketSize {
 			bucket.list.PushFront(contact)
 		}
 	} else {

@@ -7,7 +7,7 @@ import (
 )
 
 func fillBucket(b *bucket) *bucket {
-	for i := 0; i < bucketSize*2; i++ {
+	for i := 0; i < BucketSize*2; i++ {
 		contact := NewContact(NewRandomNodeID(), "10.0.8.2")
 		b.AddContact(contact)
 	}
@@ -78,5 +78,5 @@ func TestBucketLen(t *testing.T) {
 	assert.Equal(t, 1, bucket1.Len())
 
 	bucket1 = fillBucket(bucket1)
-	assert.Equal(t, bucketSize, bucket1.Len())
+	assert.Equal(t, BucketSize, bucket1.Len())
 }

@@ -1,4 +1,4 @@
-package rpc
+package kademlia
 
 import (
 	"encoding/json"
@@ -25,23 +25,30 @@ const (
 
 var rpcTypes = []RPCType{Ping, Store, FindValue, FindNode, OK}
 
-// RPC contains the type of the RPC, the payload (data) as well as a quasi random ID for
-// that RPC
+// RPC contains the `Type` of the RPC, the `Payload` (data). A quasi random `ID` for
+// that RPC. `SenderID` which is the NodeID of the node who originally sent it.
 type RPC struct {
-	Type    *RPCType `json:"type"`
-	Payload *string  `json:"payload"`
-	ID      *string  `json:"id"`
-	Sender  *string  `json:"senderID"`
+	Type     *RPCType `json:"type"`
+	Payload  *Payload `json:"payload"`
+	ID       *string  `json:"id"`
+	SenderID *string  `json:"senderID"`
 }
 
-// NewRPC creates a new RPC with a random ID added to it
-func NewRPC(rpc RPCType, senderID string, data []byte) (*RPC, error) {
+// Payload contains the data sent in RPCs. Can contain a value and/or a list of contacts.
+type Payload struct {
+	Value    *string   `json:"value"`
+	Contacts []Contact `json:"contacts"`
+}
+
+// NewRPC creates a new RPC with a random ID added to it. `rpc` is the type of the RPC,
+// `senderID` is the NodeID of the node who sends it. Returns an error
+// should the RPCType be wrong.
+func NewRPC(rpc RPCType, senderID string, payload Payload) (*RPC, error) {
 	err := validateRPCType(rpc)
 	if err != nil {
 		return nil, err
 	}
 
-	payload := string(data)
 	randomStr := randarr.RandomHexString(20)
 	randomID := string(randomStr)
 	newRPC := RPC{&rpc, &payload, &randomID, &senderID}

@@ -2,6 +2,8 @@ package kademlia
 
 import (
 	"fmt"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Node struct {
@@ -12,8 +14,8 @@ type Node struct {
 // InitNode initializes the Kademlia Node
 // with a Routing Table and a Network
 func (kademlia *Node) InitNode(id *NodeID) {
-	kademlia.network = Network{kademlia}
-	ip := kademlia.network.GetLocalIP()
+	kademlia.network = NewNetwork(kademlia)
+	ip := kademlia.network.ip
 	go kademlia.network.Listen(ip, "8080")
 
 	me := NewContact(id, ip+":8080")
@@ -37,11 +39,11 @@ func (kademlia *Node) StoreValue(data []byte) {
 }
 
 func (kademlia *Node) Ping() {
-	target := &kademlia.RT.FindClosestContacts(kademlia.RT.me.ID, bucketSize)[0]
+	target := &kademlia.RT.FindClosestContacts(kademlia.RT.me.ID, BucketSize)[0]
 	rpc, err := kademlia.network.SendPingMessage(target, &kademlia.RT.me)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Warn(err)
 		kademlia.RT.RemoveContact(*target)
 	} else if *rpc.Type == "OK" {
 		kademlia.RT.AddContact(*target)
