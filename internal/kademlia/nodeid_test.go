@@ -50,3 +50,33 @@ func TestNodeIDLess(t *testing.T) {
 	assert.Equal(t, id1.Less(id2), false)
 	assert.Equal(t, id1.Less(id1), false)
 }
+
+// func TestFindValue(t *testing.T) {
+
+// }
+
+func TestStoreValue(t *testing.T) {
+	id := NewNodeID("FFFFFFFF00000000000000000000000000000000")
+
+	node := Node{}
+	node.InitNode(id)
+	node.StoreValue("dummy")
+
+	rt := node.RT
+	assert.NotNil(t, rt)
+}
+
+func TestFindValue(t *testing.T) {
+	id := NewNodeID("FFFFFFFF00000000000000000000000000000000")
+
+	node := Node{}
+	node.InitNode(id)
+	node.StoreValue("dummy")
+
+	rt := node.RT
+	assert.NotNil(t, rt)
+
+	value := node.FindValue("dummy")
+	assert.NotNil(t, value)
+	assert.Equal(t, value, "dummy")
+}
