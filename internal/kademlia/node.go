@@ -45,18 +45,38 @@ func (kademlia *Node) InitNode() {
 }
 
 func (kademlia *Node) NodeLookup(target *Contact) {
+	c1 := NewContact(NewNodeID("1111111400000000000000000000000000000000"), "localhost:8002")
+	c2 := NewContact(NewNodeID("2111111400000000000000000000000000000000"), "localhost:8002")
+	c3 := NewContact(NewNodeID("3111111400000000000000000000000000000000"), "localhost:8002")
+	c4 := NewContact(NewNodeID("4111111400000000000000000000000000000000"), "localhost:8002")
+
+	kademlia.RT.AddContact(c4)
+	kademlia.RT.AddContact(c1)
+	kademlia.RT.AddContact(c2)
+	kademlia.RT.AddContact(c3)
+
 	table := kademlia.RT.FindClosestContacts(target.ID, BucketSize)
-	fmt.Println("table = ", table)
+
+	for i := 0; i < len(table); i++ {
+		// fmt.Println("table = ", table[i], "target = ", target.ID)
+		if table[i].ID.Equals(target.ID) {
+			fmt.Println("node found = ", table[i])
+		} else {
+			// TODO: add iterative/recursive RPC call
+		}
+	}
 }
 
-func (kademlia *Node) FindValue(hash string) {
+func (kademlia *Node) FindValue(hash string) string {
 	md5 := md5.Sum([]byte(hash))
 	var content = kademlia.content[string(md5[:])]
 	if content == "" {
 		fmt.Println("Content not found!")
-	} else {
-		fmt.Println("content = ", content)
+		// } else {
+		// 	return content
+		// fmt.Println("Content = ", content)
 	}
+	return content
 }
 
 func (kademlia *Node) StoreValue(data string) {
