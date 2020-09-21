@@ -25,13 +25,13 @@ const (
 
 var rpcTypes = []RPCType{Ping, Store, FindValue, FindNode, OK}
 
-// RPC contains the type of the RPC, the payload (data) as well as a quasi random ID for
-// that RPC
+// RPC contains the `Type` of the RPC, the `Payload` (data). A quasi random `ID` for
+// that RPC. `SenderID` which is the NodeID of the node who originally sent it.
 type RPC struct {
 	Type     *RPCType `json:"type"`
 	Payload  *Payload `json:"payload"`
 	ID       *string  `json:"id"`
-	SenderIP *string  `json:"senderIP"`
+	SenderID *string  `json:"senderID"`
 }
 
 // Payload contains the data sent in RPCs. Can contain a value and/or a list of contacts.
@@ -40,7 +40,9 @@ type Payload struct {
 	Contacts []Contact `json:"contacts"`
 }
 
-// NewRPC creates a new RPC with a random ID added to it
+// NewRPC creates a new RPC with a random ID added to it. `rpc` is the type of the RPC,
+// `senderID` is the NodeID of the node who sends it. Returns an error
+// should the RPCType be wrong.
 func NewRPC(rpc RPCType, senderID string, payload Payload) (*RPC, error) {
 	err := validateRPCType(rpc)
 	if err != nil {

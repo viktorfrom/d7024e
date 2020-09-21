@@ -35,7 +35,7 @@ type Network struct {
 }
 
 // NewNetwork initializes the network and sets the local IP address
-func NewNetwork(kademlia *Kademlia) Network {
+func NewNetwork(kademlia *Node) Network {
 	network := Network{}
 	network.kademlia = kademlia
 	network.ip = network.GetLocalIP()
@@ -72,7 +72,7 @@ func (network *Network) Listen(ip string, port string) error {
 	}
 	defer conn.Close()
 
-	err = network.handleIncomingRPCS(conn, ip)
+	err = network.handleIncomingRPCS(conn)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -81,7 +81,7 @@ func (network *Network) Listen(ip string, port string) error {
 	return nil
 }
 
-func (network *Network) handleIncomingRPCS(conn *net.UDPConn, senderIP string) error {
+func (network *Network) handleIncomingRPCS(conn *net.UDPConn) error {
 	readBuffer := make([]byte, UDPReadBufferSize)
 
 	for {
@@ -115,11 +115,6 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn, senderIP string) e
 			continue
 		}
 
-		sender := NewNodeID(*rpc.Sender)
-		contact := NewContact(sender, senderIP)
-		network.kademlia.RT.AddContact(contact)
-
-		*rpc.Type = OK
 		data, _ := MarshalRPC(*rpc)
 		conn.WriteToUDP(data, receiveAddr)
 	}
@@ -130,7 +125,7 @@ func (network *Network) handleIncomingPingRPC(rpc *RPC, senderIP string) (*RPC, 
 		return nil, errors.New(errNilRPC)
 	}
 
-	sender := NewKademliaID(*rpc.SenderIP)
+	sender := NewNodeID(*rpc.SenderID)
 	contact := NewContact(sender, senderIP+DefaultPort)
 	network.kademlia.RT.AddContact(contact)
 	*rpc.Type = OK
@@ -160,7 +155,7 @@ func (network *Network) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
 	return rpc, nil
 }
 
-func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *KademliaID, payload Payload) (*RPC, error) {
+func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *NodeID, payload Payload) (*RPC, error) {
 	rpc, _ := NewRPC(rpcType, senderID.String(), payload)
 	sendRPCID := *rpc.ID
 	readBuffer := make([]byte, 1024)

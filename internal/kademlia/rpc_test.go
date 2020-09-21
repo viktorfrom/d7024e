@@ -8,7 +8,7 @@ import (
 
 func TestRPCUnmarshal(t *testing.T) {
 	msg := "hello"
-	contact := NewContact(NewRandomKademliaID(), "10.0.8.2")
+	contact := NewContact(NewRandomNodeID(), "10.0.8.2")
 	payload := Payload{&msg, []Contact{contact}}
 	originalRPC, _ := NewRPC(Ping, "10.0.8.1", payload)
 
