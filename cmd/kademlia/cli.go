@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 )
 
 func Cli(node kademlia.Node) {
+	fmt.Println("Starting CLI...")
 	reader := bufio.NewReader(os.Stdin)
 
 	for {

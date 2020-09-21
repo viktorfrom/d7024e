@@ -15,10 +15,14 @@ func Commands(node kademlia.Node, commands []string) {
 	case "put":
 		if len(commands) == 2 {
 			Put(node, commands[1])
+		} else {
+			fmt.Println("No argument!")
 		}
 	case "p":
 		if len(commands) == 2 {
 			Put(node, commands[1])
+		} else {
+			fmt.Println("No argument!")
 		}
 	case "ping":
 		if len(commands) == 2 {
@@ -27,11 +31,19 @@ func Commands(node kademlia.Node, commands []string) {
 	case "get":
 		if len(commands) == 2 {
 			Get(node, commands[1])
+		} else {
+			fmt.Println("No argument!")
 		}
 	case "g":
 		if len(commands) == 2 {
 			Get(node, commands[1])
+		} else {
+			fmt.Println("No argument!")
 		}
+
+	case "t":
+		c := node.RT.GetMe()
+		node.NodeLookup(&c)
 	case "exit":
 		Exit()
 	case "e":
@@ -51,8 +63,8 @@ func Commands(node kademlia.Node, commands []string) {
 
 func Put(node kademlia.Node, input string) {
 	// Convert string to []byte
-	data := []byte(input)
-	node.StoreValue(data)
+	// data := []byte(input)
+	node.StoreValue(input)
 }
 
 func Ping(node kademlia.Node, input string) {
