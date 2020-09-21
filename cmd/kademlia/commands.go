@@ -43,7 +43,7 @@ func Commands(node kademlia.Node, commands []string) {
 
 	case "t":
 		c := node.RT.GetMe()
-		node.NodeLookup(&c)
+		node.NodeLookup(c)
 	case "exit":
 		Exit()
 	case "e":
