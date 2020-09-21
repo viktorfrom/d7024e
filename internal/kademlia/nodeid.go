@@ -3,12 +3,13 @@ package kademlia
 import (
 	"encoding/hex"
 	"math/rand"
+	"time"
 )
 
-// the static number of bytes in a NodeID
+// IDLength the static number of bytes in a NodeID
 const IDLength = 20
 
-// type definition of a NodeID
+// NodeID type definition of a NodeID
 type NodeID [IDLength]byte
 
 // NewNodeID returns a new instance of a NodeID based on the string input
@@ -26,6 +27,7 @@ func NewNodeID(data string) *NodeID {
 // NewRandomNodeID returns a new instance of a random NodeID,
 // change this to a better version if you like
 func NewRandomNodeID() *NodeID {
+	rand.Seed(time.Now().UTC().UnixNano())
 	newNodeID := NodeID{}
 	for i := 0; i < IDLength; i++ {
 		newNodeID[i] = uint8(rand.Intn(256))
