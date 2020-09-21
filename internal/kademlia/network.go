@@ -99,7 +99,7 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn) error {
 
 		switch *rpc.Type {
 		case Ping:
-			rpc, err = network.handleIncomingPingRPC(rpc, receiveAddr.String())
+			rpc, err = network.handleIncomingPingRPC(rpc)
 		case Store:
 			rpc, err = network.handleIncomingStoreRPC(rpc)
 		case FindNode:
@@ -115,20 +115,23 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn) error {
 			continue
 		}
 
+		network.updateRoutingTable(rpc, receiveAddr.String())
+		*rpc.Type = OK
 		data, _ := MarshalRPC(*rpc)
 		conn.WriteToUDP(data, receiveAddr)
 	}
 }
 
-func (network *Network) handleIncomingPingRPC(rpc *RPC, senderIP string) (*RPC, error) {
-	if rpc == nil {
-		return nil, errors.New(errNilRPC)
-	}
-
+func (network *Network) updateRoutingTable(rpc *RPC, senderIP string) {
 	sender := NewNodeID(*rpc.SenderID)
 	contact := NewContact(sender, senderIP+DefaultPort)
 	network.kademlia.RT.AddContact(contact)
-	*rpc.Type = OK
+}
+
+func (network *Network) handleIncomingPingRPC(rpc *RPC) (*RPC, error) {
+	if rpc == nil {
+		return nil, errors.New(errNilRPC)
+	}
 
 	return rpc, nil
 }
