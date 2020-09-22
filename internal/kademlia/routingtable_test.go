@@ -96,3 +96,11 @@ func TestRemoveFromRoutingTable(t *testing.T) {
 	assert.Equal(t, c2.ID, contacts[0].ID)
 	assert.Equal(t, c3.ID, contacts[1].ID)
 }
+
+func TestGetMe(t *testing.T) {
+	c1 := NewContact(NewNodeID("1111111400000000000000000000000000000000"), "localhost:8002")
+	rt := NewRoutingTable(c1)
+
+	assert.Equal(t, c1, *rt.GetMe())
+	assert.Equal(t, c1.ID, rt.GetMeID())
+}
