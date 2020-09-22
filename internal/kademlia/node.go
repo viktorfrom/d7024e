@@ -55,11 +55,25 @@ func (kademlia *Node) NodeLookup(target *Contact) {
 			fmt.Println("node found = ", table[i])
 		} else {
 
-			rpc, err := kademlia.network.SendFindContactMessage(&table[i], &kademlia.RT.me)
+			rpc, _ := kademlia.network.SendFindContactMessage(&table[i], &kademlia.RT.me)
 			// table = append(table, c)
-			fmt.Println("rpc = ", rpc.Payload.Contacts, "err = ", err)
+			// fmt.Println("rpc = ", rpc.Payload.Contacts)
+
+			// table = append(rpc.Payload.Contacts, table...)
+			for i := 0; i < len(table); i++ {
+				table = appendUnique(table, rpc.Payload.Contacts[i])
+			}
 		}
 	}
+}
+
+func appendUnique(slice []Contact, i Contact) []Contact {
+	for _, ele := range slice {
+		if ele == i {
+			return slice
+		}
+	}
+	return append(slice, i)
 }
 
 func (kademlia *Node) FindValue(hash string) {
