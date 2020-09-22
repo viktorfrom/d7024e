@@ -36,6 +36,7 @@ type RPC struct {
 
 // Payload contains the data sent in RPCs. Can contain a value and/or a list of contacts.
 type Payload struct {
+	Key      *string   `json:"key"`
 	Value    *string   `json:"value"`
 	Contacts []Contact `json:"contacts"`
 }

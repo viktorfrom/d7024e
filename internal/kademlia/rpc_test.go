@@ -9,7 +9,7 @@ import (
 func TestRPCUnmarshal(t *testing.T) {
 	msg := "hello"
 	contact := NewContact(NewRandomNodeID(), "10.0.8.2")
-	payload := Payload{&msg, []Contact{contact}}
+	payload := Payload{nil, &msg, []Contact{contact}}
 	originalRPC, _ := NewRPC(Ping, "10.0.8.1", payload)
 
 	data, _ := MarshalRPC(*originalRPC)
@@ -28,7 +28,7 @@ func TestRPCWrongDataUnmarshal(t *testing.T) {
 
 func TestRPCValidateID(t *testing.T) {
 	msg := "hello"
-	payload := Payload{&msg, nil}
+	payload := Payload{nil, &msg, nil}
 	originalRPC, _ := NewRPC(Store, "10.0.8.1", payload)
 	originalID := *originalRPC.ID
 
@@ -53,7 +53,7 @@ func TestEmptyRPC(t *testing.T) {
 
 func TestNewRPCCorrectTypes(t *testing.T) {
 	msg := "good bye"
-	payload := Payload{&msg, nil}
+	payload := Payload{nil, &msg, nil}
 
 	for _, rpcType := range rpcTypes {
 		_, err := NewRPC(rpcType, "10.0.8.1", payload)
@@ -63,7 +63,7 @@ func TestNewRPCCorrectTypes(t *testing.T) {
 
 func TestNewRPCWrongType(t *testing.T) {
 	msg := "good bye"
-	payload := Payload{&msg, nil}
+	payload := Payload{nil, &msg, nil}
 
 	_, err := NewRPC("wrong type", "10.0.8.1", payload)
 	assert.Error(t, err)

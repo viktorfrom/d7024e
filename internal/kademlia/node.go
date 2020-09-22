@@ -59,3 +59,13 @@ func (kademlia *Node) Ping() {
 		kademlia.RT.AddContact(*target)
 	}
 }
+
+// SearchStore looks for a value in the node's store. Returns the value
+// if found else nil.
+func (kademlia *Node) SearchStore(key string) *string {
+	value, exists := kademlia.content[key]
+	if exists {
+		return nil
+	}
+	return &value
+}
