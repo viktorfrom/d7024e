@@ -55,9 +55,9 @@ func (kademlia *Node) NodeLookup(target *Contact) {
 			fmt.Println("node found = ", table[i])
 		} else {
 
-			c, _ := kademlia.network.SendFindContactMessage(&table[i], &kademlia.RT.me)
+			rpc, err := kademlia.network.SendFindContactMessage(&table[i], &kademlia.RT.me)
 			// table = append(table, c)
-			fmt.Println("c = ", c)
+			fmt.Println("rpc = ", rpc.Payload.Contacts, "err = ", err)
 		}
 	}
 }
