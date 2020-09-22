@@ -147,13 +147,22 @@ func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
 
 	contacts := network.kademlia.RT.FindClosestContacts(rpc.Payload.Contacts[0].ID, BucketSize)
 
-	payload := Payload{nil, contacts}
+	payload := Payload{nil, nil, contacts}
 	*rpc.Payload = payload
 
 	return rpc, nil
 }
 
 func (network *Network) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
+	key := *rpc.Payload.Key
+	value := network.kademlia.SearchStore(key)
+
+	// If no value is found - return k closest
+	if value == nil {
+		return network.handleIncomingFindNodeRPC(rpc)
+	}
+
+	*rpc.Payload.Value = *value
 	return rpc, nil
 }
 
@@ -211,28 +220,34 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *Nod
 	return reply, nil
 }
 
-// SendPingMessage pings a contact and returns the response. `sender` is needed in case the receiving node needs information
-// about the node who sent the RPC. Returns an error if the contact fails to respond.
+// SendPingMessage sends a PING RPC to a contact and returns the response. `sender` is needed in
+// case the receiving node needs information about the node who sent the RPC. Returns an error
+// if the contact fails to respond.
 func (network *Network) SendPingMessage(contact *Contact, sender *Contact) (*RPC, error) {
 	pingMsg := pingMsg
-	payload := Payload{&pingMsg, nil}
+	payload := Payload{nil, &pingMsg, nil}
 	rpc, err := network.sendRPC(contact, Ping, sender.ID, payload)
 
 	return rpc, err
 }
 
-// SendFindContactMessage sends a FindNode RPC to contact. `sender` is needed in case the receiving node needs information
-// about the node who sent the RPC. Returns an error if the contact fails to respond.
+// SendFindContactMessage sends a FIND_NODE RPC to contact. `sender` is needed in case the receiving
+// node needs information about the node who sent the RPC. Returns an error if the contact fails to respond.
 func (network *Network) SendFindContactMessage(contact *Contact, sender *Contact) (*RPC, error) {
-	payload := Payload{nil, []Contact{*contact}}
+	payload := Payload{nil, nil, []Contact{*contact}}
 	rpc, err := network.sendRPC(contact, FindNode, sender.ID, payload)
 
 	return rpc, err
 }
 
-// SendFindDataMessage TODO
-func (network *Network) SendFindDataMessage(hash string) {
-	// TODO
+// SendFindDataMessage sends a FIND_VALUE RPC to contact looking for the hashed value `hash`. If the
+// value is found it will return the stored value otherwise the contacts `k` closest nodes will return.
+// Returns an error if the contact fails to respond.
+func (network *Network) SendFindDataMessage(contact *Contact, sender *Contact, hash string) (*RPC, error) {
+	payload := Payload{&hash, nil, nil}
+	rpc, err := network.sendRPC(contact, FindValue, sender.ID, payload)
+
+	return rpc, err
 }
 
 // SendStoreMessage TODO
