@@ -45,15 +45,6 @@ func (kademlia *Node) InitNode() {
 }
 
 func (kademlia *Node) NodeLookup(target *Contact) {
-	c1 := NewContact(NewNodeID("1111111400000000000000000000000000000000"), "localhost:8002")
-	c2 := NewContact(NewNodeID("2111111400000000000000000000000000000000"), "localhost:8002")
-	c3 := NewContact(NewNodeID("3111111400000000000000000000000000000000"), "localhost:8002")
-	c4 := NewContact(NewNodeID("4111111400000000000000000000000000000000"), "localhost:8002")
-
-	kademlia.RT.AddContact(c4)
-	kademlia.RT.AddContact(c1)
-	kademlia.RT.AddContact(c3)
-	kademlia.RT.AddContact(c2)
 
 	table := kademlia.RT.FindClosestContacts(target.ID, BucketSize)
 
@@ -65,6 +56,7 @@ func (kademlia *Node) NodeLookup(target *Contact) {
 		} else {
 
 			c, _ := kademlia.network.SendFindContactMessage(&table[i], &kademlia.RT.me)
+			// table = append(table, c)
 			fmt.Println("c = ", c)
 		}
 	}
