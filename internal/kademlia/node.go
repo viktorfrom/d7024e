@@ -1,7 +1,7 @@
 package kademlia
 
 import (
-	"crypto/md5"
+	"crypto/sha1"
 	"fmt"
 	"math/rand"
 	"time"
@@ -52,36 +52,39 @@ func (kademlia *Node) NodeLookup(target *Contact) {
 
 	kademlia.RT.AddContact(c4)
 	kademlia.RT.AddContact(c1)
-	kademlia.RT.AddContact(c2)
 	kademlia.RT.AddContact(c3)
+	kademlia.RT.AddContact(c2)
 
 	table := kademlia.RT.FindClosestContacts(target.ID, BucketSize)
 
 	for i := 0; i < len(table); i++ {
 		// fmt.Println("table = ", table[i], "target = ", target.ID)
+
 		if table[i].ID.Equals(target.ID) {
 			fmt.Println("node found = ", table[i])
 		} else {
-			// TODO: add iterative/recursive RPC call
+
+			c, _ := kademlia.network.SendFindContactMessage(&table[i], &kademlia.RT.me)
+			fmt.Println("c = ", c)
 		}
 	}
 }
 
-func (kademlia *Node) FindValue(hash string) string {
-	md5 := md5.Sum([]byte(hash))
-	var content = kademlia.content[string(md5[:])]
+func (kademlia *Node) FindValue(hash string) {
+	sha1 := sha1.Sum([]byte(hash))
+	var content = kademlia.content[string(sha1[:])]
 	if content == "" {
 		fmt.Println("Content not found!")
-		// } else {
-		// 	return content
-		// fmt.Println("Content = ", content)
+	} else {
+		// return content
+		fmt.Println("Content = ", content)
 	}
-	return content
+	// return content
 }
 
 func (kademlia *Node) StoreValue(data string) {
-	md5 := md5.Sum([]byte(data))
-	kademlia.content[string(md5[:])] = data
+	sha1 := sha1.Sum([]byte(data))
+	kademlia.content[string(sha1[:])] = data
 }
 
 func (kademlia *Node) Ping() {
