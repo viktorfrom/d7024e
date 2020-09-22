@@ -71,3 +71,13 @@ func TestHandleIncomingFindNode(t *testing.T) {
 	assert.Equal(t, r, rpc)
 	assert.Equal(t, errors.New(errNoContact), err)
 }
+
+func TestSendFindDataMessage(t *testing.T) {
+	node := Node{}
+	network := NewNetwork(&node)
+
+	rpc, err := network.handleIncomingRPCS([]byte{0xff, 0xee}, 1, "10.0.8.3:8080")
+
+	assert.Equal(t, nil, rpc)
+	assert.Equal(t, errors.New(errNoContact), err)
+}

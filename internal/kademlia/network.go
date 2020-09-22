@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net"
 	"strconv"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -74,7 +73,7 @@ func (network *Network) Listen(ip string, port string) error {
 	}
 	defer conn.Close()
 
-	err = network.handleIncomingRPCS(conn)
+	err = network.handleUDP(conn)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -83,7 +82,7 @@ func (network *Network) Listen(ip string, port string) error {
 	return nil
 }
 
-func (network *Network) handleIncomingRPCS(conn *net.UDPConn) error {
+func (network *Network) handleUDP(conn *net.UDPConn) error {
 	readBuffer := make([]byte, UDPReadBufferSize)
 
 	for {
@@ -93,39 +92,42 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn) error {
 			continue
 		}
 
-		rpc, err := UnmarshalRPC(readBuffer[0:bytesRead])
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
-
-		ip := strings.Split(receiveAddr.String(), ":")
-
-		network.updateRoutingTable(rpc, ip[0])
-
-		switch *rpc.Type {
-		case Ping:
-			rpc, err = network.handleIncomingPingRPC(rpc)
-		case Store:
-			rpc, err = network.handleIncomingStoreRPC(rpc)
-		case FindNode:
-			rpc, err = network.handleIncomingFindNodeRPC(rpc)
-		case FindValue:
-			rpc, err = network.handleIncomingFindValueRPC(rpc)
-		default:
-			continue
-		}
-
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
-
-		*rpc.Type = OK
-		*rpc.SenderID = network.kademlia.RT.GetMeID().String()
-		data, _ := MarshalRPC(*rpc)
+		data, err := network.handleIncomingRPCS(readBuffer, bytesRead, receiveAddr.String())
 		conn.WriteToUDP(data, receiveAddr)
 	}
+}
+
+func (network *Network) handleIncomingRPCS(readBuffer []byte, bytesRead int, receiveAddr string) ([]byte, error) {
+
+	rpc, err := UnmarshalRPC(readBuffer[0:bytesRead])
+	if err != nil {
+		log.Warn(err)
+		return nil, err
+	}
+
+	switch *rpc.Type {
+	case Ping:
+		rpc, err = network.handleIncomingPingRPC(rpc)
+	case Store:
+		rpc, err = network.handleIncomingStoreRPC(rpc)
+	case FindNode:
+		rpc, err = network.handleIncomingFindNodeRPC(rpc)
+	case FindValue:
+		rpc, err = network.handleIncomingFindValueRPC(rpc)
+	default:
+		return nil, nil
+	}
+
+	if err != nil {
+		log.Warn(err)
+		return nil, err
+	}
+
+	network.updateRoutingTable(rpc, receiveAddr.String())
+	*rpc.Type = OK
+	*rpc.SenderID = network.kademlia.RT.GetMeID().String()
+
+	return MarshalRPC(*rpc)
 }
 
 func (network *Network) updateRoutingTable(rpc *RPC, senderIP string) {
