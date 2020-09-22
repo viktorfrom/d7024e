@@ -240,11 +240,11 @@ func (network *Network) SendFindContactMessage(contact *Contact, sender *Contact
 	return rpc, err
 }
 
-// SendFindDataMessage sends a FIND_VALUE RPC to contact looking for the hashed value `hash`. If the
+// SendFindDataMessage sends a FIND_VALUE RPC to contact looking for the value belonging to `key`. If the
 // value is found it will return the stored value otherwise the contacts `k` closest nodes will return.
 // Returns an error if the contact fails to respond.
-func (network *Network) SendFindDataMessage(contact *Contact, sender *Contact, hash string) (*RPC, error) {
-	payload := Payload{&hash, nil, nil}
+func (network *Network) SendFindDataMessage(contact *Contact, sender *Contact, key string) (*RPC, error) {
+	payload := Payload{&key, nil, nil}
 	rpc, err := network.sendRPC(contact, FindValue, sender.ID, payload)
 
 	return rpc, err
