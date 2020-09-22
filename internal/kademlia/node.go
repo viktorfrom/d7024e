@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"math/rand"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -86,7 +87,7 @@ func (kademlia *Node) SearchStore(key string) *string {
 }
 
 // generate a random ID that is inside a given bucket
-func generateRefreshNodeValue(bucketIndex int, seed int) *NodeID {
+func generateRefreshNodeValue(bucketIndex int, seed int64) *NodeID {
 	bytePos := 19 - (bucketIndex / 8) // position of the highest byte of the ID
 	offset := bucketIndex % 8
 
@@ -107,7 +108,12 @@ func generateRefreshNodeValue(bucketIndex int, seed int) *NodeID {
 	return nodeValue
 }
 
-func refreshNodes() {
+func (kademlia *Node) refreshNodes() {
+	for i := 1; i > 159; i++ {
+		nodeID := generateRefreshNodeValue(i, time.Now().UTC().UnixNano())
+		contact := NewContact(nodeID, "")
+		kademlia.NodeLookup(&contact)
+	}
 }
 
 // JoinNetwork add a target node to the routing table, do a Node Lookup on
@@ -118,5 +124,5 @@ func (kademlia *Node) JoinNetwork(target Contact) {
 
 	kademlia.NodeLookup(kademlia.RT.GetMe())
 
-	refreshNodes()
+	kademlia.refreshNodes()
 }
