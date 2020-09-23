@@ -17,13 +17,14 @@ const (
 )
 
 const (
-	udpNetwork   string = "udp4"
-	pingMsg      string = "PING"
-	errNoReply   string = "did not receive a reply"
-	errDiffAddr  string = "receive address not same as send address"
-	errDiffID    string = "rpc ID was different"
-	errNilRPC    string = "rpc struct is nil"
-	errNoContact string = "no contact was given"
+	udpNetwork     string = "udp4"
+	pingMsg        string = "PING"
+	errNoReply     string = "did not receive a reply"
+	errDiffAddr    string = "receive address not same as send address"
+	errDiffID      string = "rpc ID was different"
+	errNilRPC      string = "rpc struct is nil"
+	errNoContact   string = "no contact was given"
+	errBadKeyValue string = "bad or no key or value given"
 )
 
 // the time before a RPC call times out
@@ -59,8 +60,8 @@ func (network *Network) GetLocalIP() string {
 	return ""
 }
 
-// Listen listens on the given ip and port. If it fails to connect
-// an error will be returned.
+// Listen listens on the given ip and port for incoming RPC requests.
+//If it fails to connect an error will be returned.
 func (network *Network) Listen(ip string, port string) error {
 	portAsInt, _ := strconv.Atoi(port)
 	listenAddr := &net.UDPAddr{IP: net.ParseIP(ip), Port: portAsInt, Zone: ""}
@@ -117,6 +118,7 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn) error {
 
 		network.updateRoutingTable(rpc, receiveAddr.String())
 		*rpc.Type = OK
+		*rpc.SenderID = network.kademlia.RT.GetMeID().String()
 		data, _ := MarshalRPC(*rpc)
 		conn.WriteToUDP(data, receiveAddr)
 	}
@@ -137,6 +139,14 @@ func (network *Network) handleIncomingPingRPC(rpc *RPC) (*RPC, error) {
 }
 
 func (network *Network) handleIncomingStoreRPC(rpc *RPC) (*RPC, error) {
+	key := rpc.Payload.Key
+	value := rpc.Payload.Value
+	if key == nil || value == nil {
+		return nil, errors.New(errBadKeyValue)
+	}
+
+	network.kademlia.insertLocalStore(*key, *value)
+
 	return rpc, nil
 }
 
@@ -155,7 +165,7 @@ func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
 
 func (network *Network) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
 	key := *rpc.Payload.Key
-	value := network.kademlia.SearchStore(key)
+	value := network.kademlia.searchLocalStore(key)
 
 	// If no value is found - return k closest
 	if value == nil {
@@ -240,17 +250,21 @@ func (network *Network) SendFindContactMessage(contact *Contact, sender *Contact
 	return rpc, err
 }
 
-// SendFindDataMessage sends a FIND_VALUE RPC to contact looking for the hashed value `hash`. If the
+// SendFindDataMessage sends a FIND_VALUE RPC to contact looking for the value belonging to `key`. If the
 // value is found it will return the stored value otherwise the contacts `k` closest nodes will return.
 // Returns an error if the contact fails to respond.
-func (network *Network) SendFindDataMessage(contact *Contact, sender *Contact, hash string) (*RPC, error) {
-	payload := Payload{&hash, nil, nil}
+func (network *Network) SendFindDataMessage(contact *Contact, sender *Contact, key string) (*RPC, error) {
+	payload := Payload{&key, nil, nil}
 	rpc, err := network.sendRPC(contact, FindValue, sender.ID, payload)
 
 	return rpc, err
 }
 
-// SendStoreMessage TODO
-func (network *Network) SendStoreMessage(data []byte) {
-	// TODO
+// SendStoreMessage sends a STORE RPC to contact with a given `key`, `value`. Returns an error if the contact
+// fails to respond.
+func (network *Network) SendStoreMessage(contact *Contact, sender *Contact, key string, value string) (*RPC, error) {
+	payload := Payload{&key, &value, nil}
+	rpc, err := network.sendRPC(contact, Store, sender.ID, payload)
+
+	return rpc, err
 }

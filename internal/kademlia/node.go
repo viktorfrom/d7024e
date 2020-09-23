@@ -76,9 +76,9 @@ func (kademlia *Node) Ping() {
 	}
 }
 
-// SearchStore looks for a value in the node's store. Returns the value
+// searchLocalStore looks for a value in the node's store. Returns the value
 // if found else nil.
-func (kademlia *Node) SearchStore(key string) *string {
+func (kademlia *Node) searchLocalStore(key string) *string {
 	value, exists := kademlia.content[key]
 	if exists {
 		return nil
@@ -125,4 +125,8 @@ func (kademlia *Node) JoinNetwork(target Contact) {
 	kademlia.NodeLookup(kademlia.RT.GetMe())
 
 	kademlia.refreshNodes()
+}
+
+func (kademlia *Node) insertLocalStore(key string, value string) {
+	kademlia.content[key] = value
 }
