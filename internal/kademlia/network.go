@@ -92,28 +92,31 @@ func (network *Network) handleUDP(conn *net.UDPConn) error {
 			continue
 		}
 
-		data, err := network.handleIncomingRPCS(readBuffer, bytesRead, receiveAddr.String())
+		rpc, err := UnmarshalRPC(readBuffer[0:bytesRead])
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
+
+		rpc, err = network.handleIncomingRPCS(rpc, receiveAddr.String())
+		data, err := MarshalRPC(*rpc)
+
 		conn.WriteToUDP(data, receiveAddr)
 	}
 }
 
-func (network *Network) handleIncomingRPCS(readBuffer []byte, bytesRead int, receiveAddr string) ([]byte, error) {
-
-	rpc, err := UnmarshalRPC(readBuffer[0:bytesRead])
-	if err != nil {
-		log.Warn(err)
-		return nil, err
-	}
-
+func (network *Network) handleIncomingRPCS(rpc *RPC, receiveAddr string) (*RPC, error) {
+	var err error
+	var retRPC *RPC
 	switch *rpc.Type {
 	case Ping:
-		rpc, err = network.handleIncomingPingRPC(rpc)
+		retRPC, err = network.handleIncomingPingRPC(rpc)
 	case Store:
-		rpc, err = network.handleIncomingStoreRPC(rpc)
+		retRPC, err = network.handleIncomingStoreRPC(rpc)
 	case FindNode:
-		rpc, err = network.handleIncomingFindNodeRPC(rpc)
+		retRPC, err = network.handleIncomingFindNodeRPC(rpc)
 	case FindValue:
-		rpc, err = network.handleIncomingFindValueRPC(rpc)
+		retRPC, err = network.handleIncomingFindValueRPC(rpc)
 	default:
 		return nil, nil
 	}
@@ -127,7 +130,7 @@ func (network *Network) handleIncomingRPCS(readBuffer []byte, bytesRead int, rec
 	*rpc.Type = OK
 	*rpc.SenderID = network.kademlia.RT.GetMeID().String()
 
-	return MarshalRPC(*rpc)
+	return retRPC, nil
 }
 
 func (network *Network) updateRoutingTable(rpc *RPC, senderIP string) {

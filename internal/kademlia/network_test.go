@@ -72,12 +72,18 @@ func TestHandleIncomingFindNode(t *testing.T) {
 	assert.Equal(t, errors.New(errNoContact), err)
 }
 
-func TestSendFindDataMessage(t *testing.T) {
+func TestHandleIncomingRPCS(t *testing.T) {
 	node := Node{}
+	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
+	node.RT = NewRoutingTable(c)
 	network := NewNetwork(&node)
+	pingMsg := pingMsg
+	payload := Payload{nil, &pingMsg, nil}
 
-	rpc, err := network.handleIncomingRPCS([]byte{0xff, 0xee}, 1, "10.0.8.3:8080")
+	orgRPC, _ := NewRPC(Ping, "1111111100000000000000000000000000000000", payload)
+	rpc, err := network.handleIncomingRPCS(orgRPC, "10.0.8.3:8080")
 
-	assert.Equal(t, nil, rpc)
-	assert.Equal(t, errors.New(errNoContact), err)
+	assert.Equal(t, orgRPC, rpc)
+	assert.Equal(t, OK, *rpc.Type)
+	assert.Nil(t, err)
 }
