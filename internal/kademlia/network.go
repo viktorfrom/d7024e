@@ -126,7 +126,7 @@ func (network *Network) handleIncomingRPCS(rpc *RPC, receiveAddr string) (*RPC, 
 		return nil, err
 	}
 
-	network.updateRoutingTable(rpc, receiveAddr.String())
+	network.updateRoutingTable(rpc, receiveAddr)
 	*rpc.Type = OK
 	*rpc.SenderID = network.kademlia.RT.GetMeID().String()
 
