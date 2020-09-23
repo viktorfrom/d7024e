@@ -48,21 +48,29 @@ func (kademlia *Node) NodeLookup(target *Contact) {
 
 	table := kademlia.RT.FindClosestContacts(target.ID, BucketSize)
 
-	for i := 0; i < len(table); i++ {
+	for {
 		// fmt.Println("table = ", table[i], "target = ", target.ID)
 
-		if table[i].ID.Equals(target.ID) {
-			fmt.Println("node found = ", table[i])
+		fmt.Println("table = ", table)
+
+		if table[0].ID.Equals(target.ID) {
+			fmt.Println("node found = ", table[0])
+			break
 		} else {
 
-			rpc, _ := kademlia.network.SendFindContactMessage(&table[i], &kademlia.RT.me)
-			// table = append(table, c)
-			// fmt.Println("rpc = ", rpc.Payload.Contacts)
+			rpc, _ := kademlia.network.SendFindContactMessage(&table[0], &kademlia.RT.me)
 
-			// table = append(rpc.Payload.Contacts, table...)
-			for i := 0; i < len(table); i++ {
+			// fmt.Println("table = ", table)
+
+			if len(table) > 0 {
+				table = table[1:]
+			}
+
+			// fmt.Println("table = ", table)
+			for i := 0; i < len(rpc.Payload.Contacts); i++ {
 				table = appendUnique(table, rpc.Payload.Contacts[i])
 			}
+			time.Sleep(1000 * time.Millisecond)
 		}
 	}
 }
@@ -73,7 +81,7 @@ func appendUnique(slice []Contact, i Contact) []Contact {
 			return slice
 		}
 	}
-	return append(slice, i)
+	return append([]Contact{i}, slice...)
 }
 
 func (kademlia *Node) FindValue(hash string) {
@@ -151,7 +159,7 @@ func (kademlia *Node) JoinNetwork(target Contact) {
 
 	kademlia.RT.AddContact(target)
 
-	kademlia.NodeLookup(kademlia.RT.GetMe())
+	// kademlia.NodeLookup(kademlia.RT.GetMe())
 
-	kademlia.refreshNodes()
+	// kademlia.refreshNodes()
 }
