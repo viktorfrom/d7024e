@@ -107,6 +107,7 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 
 				numProbed++
 			}
+			time.Sleep(1000 * time.Millisecond)
 		}
 
 		if !updateClosest || probedNodes.Len() >= BucketSize {
@@ -301,7 +302,7 @@ func (kademlia *Node) JoinNetwork(target Contact) {
 
 	kademlia.NodeLookup(kademlia.RT.GetMe().ID)
 
-	kademlia.refreshNodes()
+	// kademlia.refreshNodes()
 }
 
 func (kademlia *Node) insertLocalStore(key string, value string) {
