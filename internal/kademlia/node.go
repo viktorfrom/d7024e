@@ -46,30 +46,41 @@ func (kademlia *Node) InitNode() {
 
 func (kademlia *Node) NodeLookup(target *Contact) {
 
-	table := kademlia.RT.FindClosestContacts(target.ID, BucketSize)
+	// TODO: support for parallelism alpha = ~3
+	shortList := kademlia.RT.FindClosestContacts(target.ID, BucketSize)
+
+	closestNode := shortList[0]
+	// fmt.Println("table = ", closestNode)
 
 	for {
-		// fmt.Println("table = ", table[i], "target = ", target.ID)
+		fmt.Println("table = ", shortList)
 
-		fmt.Println("table = ", table)
-
-		if table[0].ID.Equals(target.ID) {
-			fmt.Println("node found = ", table[0])
+		if shortList[0].ID.Equals(target.ID) {
+			fmt.Println("node found = ", closestNode)
 			break
+
 		} else {
 
-			rpc, _ := kademlia.network.SendFindContactMessage(&table[0], &kademlia.RT.me)
+			rpc, err := kademlia.network.SendFindContactMessage(&shortList[0], &kademlia.RT.me)
 
-			// fmt.Println("table = ", table)
-
-			if len(table) > 0 {
-				table = table[1:]
+			// remove current/first node from shorttable
+			if len(shortList) > 0 {
+				shortList = shortList[1:]
 			}
 
-			// fmt.Println("table = ", table)
-			for i := 0; i < len(rpc.Payload.Contacts); i++ {
-				table = appendUnique(table, rpc.Payload.Contacts[i])
+			// append contacts to shortlist if err is none
+			if err == nil {
+				for i := 0; i < len(rpc.Payload.Contacts); i++ {
+					shortList = appendUnique(shortList, rpc.Payload.Contacts[i])
+				}
 			}
+
+			// update closest node if first element distance is shorter
+			if len(shortList) > 0 || shortList[0].Less(target) {
+				closestNode = shortList[0]
+			}
+
+			// sleep for testing
 			time.Sleep(1000 * time.Millisecond)
 		}
 	}
@@ -81,6 +92,7 @@ func appendUnique(slice []Contact, i Contact) []Contact {
 			return slice
 		}
 	}
+
 	return append([]Contact{i}, slice...)
 }
 
