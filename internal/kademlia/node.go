@@ -36,10 +36,13 @@ func (kademlia *Node) InitNode() {
 	go kademlia.network.Listen(ip, "8080")
 
 	me := NewContact(id, ip+":8080")
+	me.CalcDistance(me.ID)
 	kademlia.RT = NewRoutingTable(me)
 
-	rendezvousNode := NewContact(rendezvousID, "10.0.8.3:8080")
-	kademlia.JoinNetwork(rendezvousNode)
+	if ip != "10.0.8.3" {
+		rendezvousNode := NewContact(rendezvousID, "10.0.8.3:8080")
+		kademlia.JoinNetwork(rendezvousNode)
+	}
 
 	kademlia.content = make(map[string]string)
 }
@@ -47,24 +50,30 @@ func (kademlia *Node) InitNode() {
 func (kademlia *Node) NodeLookup(target *Contact) {
 
 	// TODO: support for parallelism alpha = ~3
-	// TODO: if a closer node is not found, the initiating node sends a FIND_* RPC to each of the
-	// k closest nodes that it has not already queried.
+	// TODO: If a cycle doesn't find a closer node, if closestNode is unchanged,
+	// then the initiating node sends a FIND_* RPC to each of the k closest nodes
+	// that it has not already queried.
 	closestsContacts := kademlia.RT.FindClosestContacts(target.ID, BucketSize)
 	shortList := ContactCandidates{closestsContacts}
+	result := shortList
 
 	closestNode := shortList.contacts[0]
-	// fmt.Println("table = ", closestNode)
 
 	for {
-		fmt.Println("table = ", shortList)
-
-		if closestNode.ID.Equals(target.ID) {
-			fmt.Println("node found = ", closestNode)
+		if len(shortList.contacts) == 0 {
+			if len(result.contacts) > BucketSize {
+				fmt.Println("k closest = ", result.contacts[:BucketSize])
+			} else {
+				fmt.Println("k closest = ", result.contacts)
+			}
 			break
 
 		} else {
 
 			rpc, err := kademlia.network.SendFindContactMessage(&closestNode, &kademlia.RT.me)
+
+			// TODO: update routing table to remove dead nodes
+			// kademlia.Ping(target)
 
 			// remove current/first node from shortlist
 			if len(shortList.contacts) > 0 {
@@ -74,31 +83,47 @@ func (kademlia *Node) NodeLookup(target *Contact) {
 			// append contacts to shortlist if err is none
 			if err == nil {
 				for i := 0; i < len(rpc.Payload.Contacts); i++ {
-					shortList.contacts = appendUnique(shortList.contacts, rpc.Payload.Contacts[i])
+					rpc.Payload.Contacts[i].CalcDistance(target.ID)
+
+					if contains(result.contacts, rpc.Payload.Contacts[i]) {
+						shortList.contacts = appendUnique(shortList.contacts, rpc.Payload.Contacts[i])
+					}
+
+					result.contacts = appendUnique(result.contacts, rpc.Payload.Contacts[i])
 				}
 			}
 
 			shortList.Sort()
+			result.Sort()
 
 			// update closest node if first element distance is shorter
-			if len(shortList.contacts) > 0 || shortList.contacts[0].Less(target) {
-				closestNode = shortList.contacts[0]
+			if len(shortList.contacts) > 0 {
+				if shortList.contacts[0].Less(target) {
+					closestNode = shortList.contacts[0]
+				}
 			}
-
-			// sleep for testing
-			time.Sleep(1000 * time.Millisecond)
 		}
 	}
 }
 
 func appendUnique(slice []Contact, i Contact) []Contact {
 	for _, ele := range slice {
-		if ele == i {
+		if ele.ID.Equals(i.ID) {
 			return slice
 		}
 	}
 
 	return append([]Contact{i}, slice...)
+}
+
+func contains(slice []Contact, i Contact) bool {
+	for _, ele := range slice {
+		if ele.ID.Equals(i.ID) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (kademlia *Node) FindValue(hash string) {
@@ -118,16 +143,18 @@ func (kademlia *Node) StoreValue(data string) {
 	kademlia.content[string(sha1[:])] = data
 }
 
-func (kademlia *Node) Ping() {
-	target := &kademlia.RT.FindClosestContacts(kademlia.RT.me.ID, BucketSize)[0]
+func (kademlia *Node) Ping(target *Contact) bool {
 	rpc, err := kademlia.network.SendPingMessage(target, &kademlia.RT.me)
 
 	if err != nil {
 		log.Warn(err)
 		kademlia.RT.RemoveContact(*target)
+		return false
 	} else if *rpc.Type == "OK" {
 		kademlia.RT.AddContact(*target)
+		return true
 	}
+	return false
 }
 
 // SearchStore looks for a value in the node's store. Returns the value
@@ -176,7 +203,7 @@ func (kademlia *Node) JoinNetwork(target Contact) {
 
 	kademlia.RT.AddContact(target)
 
-	// kademlia.NodeLookup(kademlia.RT.GetMe())
+	kademlia.NodeLookup(kademlia.RT.GetMe())
 
-	// kademlia.refreshNodes()
+	kademlia.refreshNodes()
 }

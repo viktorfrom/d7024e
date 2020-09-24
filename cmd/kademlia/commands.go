@@ -41,8 +41,10 @@ func Commands(node kademlia.Node, commands []string) {
 			fmt.Println("No argument!")
 		}
 	case "t":
-		c := node.RT.GetMe()
-		node.NodeLookup(c)
+		// c := node.RT.GetMe()
+		c := kademlia.NewContact(kademlia.NewNodeID("00000000000000100b5e0038281912513b2f5751"), "10.0.8.9")
+		c.CalcDistance(node.RT.GetMeID())
+		node.NodeLookup(&c)
 	case "exit":
 		Exit()
 	case "e":

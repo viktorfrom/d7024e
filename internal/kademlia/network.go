@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -97,6 +98,10 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn) error {
 			continue
 		}
 
+		ip := strings.Split(receiveAddr.String(), ":")
+
+		network.updateRoutingTable(rpc, ip[0])
+
 		switch *rpc.Type {
 		case Ping:
 			rpc, err = network.handleIncomingPingRPC(rpc)
@@ -115,7 +120,6 @@ func (network *Network) handleIncomingRPCS(conn *net.UDPConn) error {
 			continue
 		}
 
-		network.updateRoutingTable(rpc, receiveAddr.String())
 		*rpc.Type = OK
 		data, _ := MarshalRPC(*rpc)
 		conn.WriteToUDP(data, receiveAddr)
