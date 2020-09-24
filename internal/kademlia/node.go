@@ -231,9 +231,12 @@ func (kademlia *Node) Ping(target *Contact) {
 	if err != nil {
 		log.Warn(err)
 		kademlia.RT.RemoveContact(*target)
+		return false
 	} else if *rpc.Type == "OK" {
 		kademlia.RT.AddContact(*target)
+		return true
 	}
+	return false
 }
 
 // updateBucket checks if a contact should be added to a bucket if it does not exist,
@@ -302,7 +305,7 @@ func (kademlia *Node) JoinNetwork(target Contact) {
 
 	kademlia.NodeLookup(kademlia.RT.GetMe().ID)
 
-	// kademlia.refreshNodes()
+	kademlia.refreshNodes()
 }
 
 func (kademlia *Node) insertLocalStore(key string, value string) {
