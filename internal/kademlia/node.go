@@ -86,18 +86,7 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 
 				bucket := kademlia.RT.buckets[kademlia.RT.getBucketIndex(shortList.contacts[i].ID)]
 
-				// if there is space in the bucket add the node
-				if bucket.Len() < BucketSize {
-					kademlia.RT.AddContact(shortList.contacts[i])
-				} else {
-					// if there is no space in the bucket ping the least recently seen node
-					kademlia.Ping(bucket.GetFirst())
-
-					// if there now is space in the bucket add the node
-					if bucket.Len() < BucketSize {
-						kademlia.RT.AddContact(shortList.contacts[i])
-					}
-				}
+				kademlia.updateBucket(*bucket, shortList.contacts[i])
 
 				// append contacts to shortlist if err is none
 				for i := 0; i < len(rpc.Payload.Contacts); i++ {
@@ -157,6 +146,11 @@ func (kademlia *Node) StoreValue(data string) {
 
 		if err != nil {
 			log.Warn(err)
+			kademlia.RT.RemoveContact(node)
+		} else {
+			bucket := kademlia.RT.buckets[kademlia.RT.getBucketIndex(node.ID)]
+
+			kademlia.updateBucket(*bucket, node)
 		}
 	}
 }
@@ -172,6 +166,24 @@ func (kademlia *Node) Ping(target *Contact) {
 		kademlia.RT.RemoveContact(*target)
 	} else if *rpc.Type == "OK" {
 		kademlia.RT.AddContact(*target)
+	}
+}
+
+// updateBucket checks if a contact should be added to a bucket if it does not exist,
+// removes a stale first node in the bucket and replace it with the new node
+// or a active old node from the front to the back
+func (kademlia *Node) updateBucket(bucket bucket, contact Contact) {
+	// if there is space in the bucket add the node
+	if bucket.Len() < BucketSize || bucket.Contains(contact) {
+		kademlia.RT.AddContact(contact)
+	} else {
+		// if there is no space in the bucket ping the least recently seen node
+		kademlia.Ping(bucket.GetFirst())
+
+		// if there now is space in the bucket add the node
+		if bucket.Len() < BucketSize {
+			kademlia.RT.AddContact(contact)
+		}
 	}
 }
 
