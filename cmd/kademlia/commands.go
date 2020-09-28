@@ -70,8 +70,8 @@ func Ping(node kademlia.Node, input string) {
 }
 
 func Get(node kademlia.Node, hash string) {
-	t := node.FindValue(hash)
-	println("test", t)
+	value := node.FindValue(hash)
+	println("value = ", value)
 }
 
 func Exit() {
