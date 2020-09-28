@@ -3,7 +3,6 @@ package kademlia
 import (
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -118,16 +117,94 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 	return shortList.contacts
 }
 
-func (kademlia *Node) FindValue(hash string) {
-	sha1 := sha1.Sum([]byte(hash))
-	var content = kademlia.content[string(sha1[:])]
-	if content == "" {
-		fmt.Println("Content not found!")
+func (kademlia *Node) FindValue(hash string) string {
+
+	if content, ok := kademlia.content[hash]; ok {
+		return content
+
 	} else {
-		// return content
-		fmt.Println("Content = ", content)
+		alpha := 1
+		shortList := ContactCandidates{kademlia.RT.FindClosestContacts(NewNodeID(hash), alpha)}
+
+		// set a temporary value to currentClosest that is the furthest away a node can be
+		currentClosest := NewContact(NewNodeID("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), "")
+		currentClosest.distance = NewNodeID("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+
+		// a list of nodes to know which nodes has been probed already
+		probedNodes := ContactCandidates{}
+
+		for {
+			updateClosest := false
+			numProbed := 0
+
+			for i := 0; i < shortList.Len() && numProbed < alpha; i++ {
+
+				if probedNodes.Contains(shortList.contacts[i]) {
+					continue
+				} else {
+					rpc, err := kademlia.network.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
+
+					if *rpc.Payload.Value != "" {
+						return *rpc.Payload.Value
+					}
+
+					// if a node responds with an error remove that node from the shortlist and from the bucket
+					if err != nil {
+						log.Warn(err)
+						kademlia.RT.RemoveContact(shortList.contacts[i])
+						shortList.contacts = append(shortList.contacts[:i], shortList.contacts[i+1:]...)
+						continue
+					}
+
+					probedNodes.Append([]Contact{shortList.contacts[i]})
+
+					bucket := kademlia.RT.buckets[kademlia.RT.getBucketIndex(shortList.contacts[i].ID)]
+
+					// if there is space in the bucket add the node
+					if bucket.Len() < BucketSize {
+						kademlia.RT.AddContact(shortList.contacts[i])
+					} else {
+						// if there is no space in the bucket ping the least recently seen node
+						kademlia.Ping(bucket.GetFirst())
+
+						// if there now is space in the bucket add the node
+						if bucket.Len() < BucketSize {
+							kademlia.RT.AddContact(shortList.contacts[i])
+						}
+					}
+
+					// append contacts to shortlist if err is none
+					for i := 0; i < len(rpc.Payload.Contacts); i++ {
+						rpc.Payload.Contacts[i].CalcDistance(NewNodeID(hash))
+					}
+
+					// if the closest node in the payload is less than the currentClosest
+					// update the shortlist and the currentClosest node
+					if rpc.Payload.Contacts[0].Less(&currentClosest) {
+						currentClosest = rpc.Payload.Contacts[0]
+						shortList.AppendUnique(rpc.Payload.Contacts)
+						shortList.Sort()
+						if shortList.Len() >= BucketSize {
+							shortList.contacts = shortList.contacts[:BucketSize]
+						}
+
+						updateClosest = true
+					}
+
+					numProbed++
+				}
+			}
+
+			if !updateClosest || probedNodes.Len() >= BucketSize {
+				break
+			}
+		}
+
+		// return shortList.contacts
+
 	}
-	// return content
+
+	return "No value found!"
 }
 
 // StoreValue takes some data, hashes it with SHA1 and finds the k closest
