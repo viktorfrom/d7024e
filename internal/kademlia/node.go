@@ -2,6 +2,7 @@ package kademlia
 
 import (
 	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"time"
@@ -140,9 +141,24 @@ func (kademlia *Node) FindValue(hash string) {
 	// return content
 }
 
+// StoreValue takes some data, hashes it with SHA1 and finds the k closest
+// nodes to that hash, then sends a store RPC to those k nodes
 func (kademlia *Node) StoreValue(data string) {
 	sha1 := sha1.Sum([]byte(data))
-	kademlia.content[string(sha1[:])] = data
+	key := hex.EncodeToString(sha1[:])
+
+	// find the K closest nodes to the hashed value in the whole Kademlia network
+	targetID := NewNodeID(key)
+	nodes := kademlia.NodeLookup(targetID)
+
+	// for each of the closest nodes send a store RPC
+	for _, node := range nodes {
+		_, err := kademlia.network.SendStoreMessage(&node, &kademlia.RT.me, key, data)
+
+		if err != nil {
+			log.Warn(err)
+		}
+	}
 }
 
 // Ping sends a ping message to a target node
