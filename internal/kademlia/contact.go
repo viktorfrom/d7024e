@@ -45,6 +45,16 @@ func (candidates *ContactCandidates) Append(contacts []Contact) {
 	candidates.contacts = append(candidates.contacts, contacts...)
 }
 
+// Append an unique elements in an array of Contacts to the ContactCandidates
+func (candidates *ContactCandidates) AppendUnique(contacts []Contact) {
+
+	for i := 0; i < len(contacts); i++ {
+		if !candidates.Contains(contacts[i]) {
+			candidates.Append([]Contact{contacts[i]})
+		}
+	}
+}
+
 // GetContacts returns the first count number of Contacts
 func (candidates *ContactCandidates) GetContacts(count int) []Contact {
 	return candidates.contacts[:count]
@@ -70,4 +80,14 @@ func (candidates *ContactCandidates) Swap(i, j int) {
 // the Contact at index j
 func (candidates *ContactCandidates) Less(i, j int) bool {
 	return candidates.contacts[i].Less(&candidates.contacts[j])
+}
+
+// Contains returns true if the list of Contacts contains the Contact c
+func (candidates *ContactCandidates) Contains(c Contact) bool {
+	for _, contact := range candidates.contacts {
+		if contact.ID.Equals(c.ID) {
+			return true
+		}
+	}
+	return false
 }
