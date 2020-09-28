@@ -2,6 +2,7 @@ package kademlia
 
 import (
 	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"time"
@@ -85,18 +86,7 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 
 				bucket := kademlia.RT.buckets[kademlia.RT.getBucketIndex(shortList.contacts[i].ID)]
 
-				// if there is space in the bucket add the node
-				if bucket.Len() < BucketSize {
-					kademlia.RT.AddContact(shortList.contacts[i])
-				} else {
-					// if there is no space in the bucket ping the least recently seen node
-					kademlia.Ping(bucket.GetFirst())
-
-					// if there now is space in the bucket add the node
-					if bucket.Len() < BucketSize {
-						kademlia.RT.AddContact(shortList.contacts[i])
-					}
-				}
+				kademlia.updateBucket(*bucket, shortList.contacts[i])
 
 				// append contacts to shortlist if err is none
 				for i := 0; i < len(rpc.Payload.Contacts); i++ {
@@ -140,9 +130,29 @@ func (kademlia *Node) FindValue(hash string) {
 	// return content
 }
 
+// StoreValue takes some data, hashes it with SHA1 and finds the k closest
+// nodes to that hash, then sends a store RPC to those k nodes
 func (kademlia *Node) StoreValue(data string) {
 	sha1 := sha1.Sum([]byte(data))
-	kademlia.content[string(sha1[:])] = data
+	key := hex.EncodeToString(sha1[:])
+
+	// find the K closest nodes to the hashed value in the whole Kademlia network
+	targetID := NewNodeID(key)
+	nodes := kademlia.NodeLookup(targetID)
+
+	// for each of the closest nodes send a store RPC
+	for _, node := range nodes {
+		_, err := kademlia.network.SendStoreMessage(&node, &kademlia.RT.me, key, data)
+
+		if err != nil {
+			log.Warn(err)
+			kademlia.RT.RemoveContact(node)
+		} else {
+			bucket := kademlia.RT.buckets[kademlia.RT.getBucketIndex(node.ID)]
+
+			kademlia.updateBucket(*bucket, node)
+		}
+	}
 }
 
 // Ping sends a ping message to a target node
@@ -156,6 +166,24 @@ func (kademlia *Node) Ping(target *Contact) {
 		kademlia.RT.RemoveContact(*target)
 	} else if *rpc.Type == "OK" {
 		kademlia.RT.AddContact(*target)
+	}
+}
+
+// updateBucket checks if a contact should be added to a bucket if it does not exist,
+// removes a stale first node in the bucket and replace it with the new node
+// or a active old node from the front to the back
+func (kademlia *Node) updateBucket(bucket bucket, contact Contact) {
+	// if there is space in the bucket add the node
+	if bucket.Len() < BucketSize || bucket.Contains(contact) {
+		kademlia.RT.AddContact(contact)
+	} else {
+		// if there is no space in the bucket ping the least recently seen node
+		kademlia.Ping(bucket.GetFirst())
+
+		// if there now is space in the bucket add the node
+		if bucket.Len() < BucketSize {
+			kademlia.RT.AddContact(contact)
+		}
 	}
 }
 

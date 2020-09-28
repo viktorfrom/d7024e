@@ -57,6 +57,18 @@ func (bucket *bucket) RemoveContact(contact Contact) {
 	}
 }
 
+func (bucket *bucket) Contains(contact Contact) bool {
+	for e := bucket.list.Front(); e != nil; e = e.Next() {
+		nodeID := e.Value.(Contact).ID
+
+		if (contact).ID.Equals(nodeID) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // GetFirst retuns the first node in the bucket which should be
 // the least recently seen node
 func (bucket *bucket) GetFirst() *Contact {
