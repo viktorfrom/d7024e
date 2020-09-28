@@ -3,6 +3,7 @@ package kademlia
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -144,6 +145,8 @@ func (kademlia *Node) FindValue(hash string) string {
 				} else {
 					rpc, err := kademlia.network.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
 
+					fmt.Println("rpc = ", *rpc.Payload.Value)
+
 					if *rpc.Payload.Value != "" {
 						return *rpc.Payload.Value
 					}
@@ -161,17 +164,19 @@ func (kademlia *Node) FindValue(hash string) string {
 					bucket := kademlia.RT.buckets[kademlia.RT.getBucketIndex(shortList.contacts[i].ID)]
 
 					// if there is space in the bucket add the node
-					if bucket.Len() < BucketSize {
-						kademlia.RT.AddContact(shortList.contacts[i])
-					} else {
-						// if there is no space in the bucket ping the least recently seen node
-						kademlia.Ping(bucket.GetFirst())
+					// if bucket.Len() < BucketSize {
+					// 	kademlia.RT.AddContact(shortList.contacts[i])
+					// } else {
+					// 	// if there is no space in the bucket ping the least recently seen node
+					// 	kademlia.Ping(bucket.GetFirst())
 
-						// if there now is space in the bucket add the node
-						if bucket.Len() < BucketSize {
-							kademlia.RT.AddContact(shortList.contacts[i])
-						}
-					}
+					// 	// if there now is space in the bucket add the node
+					// 	if bucket.Len() < BucketSize {
+					// 		kademlia.RT.AddContact(shortList.contacts[i])
+					// 	}
+					// }
+
+					kademlia.updateBucket(*bucket, shortList.contacts[i])
 
 					// append contacts to shortlist if err is none
 					for i := 0; i < len(rpc.Payload.Contacts); i++ {
@@ -212,6 +217,8 @@ func (kademlia *Node) FindValue(hash string) string {
 func (kademlia *Node) StoreValue(data string) {
 	sha1 := sha1.Sum([]byte(data))
 	key := hex.EncodeToString(sha1[:])
+
+	println("key = ", key)
 
 	// find the K closest nodes to the hashed value in the whole Kademlia network
 	targetID := NewNodeID(key)
