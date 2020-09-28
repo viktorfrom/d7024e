@@ -40,10 +40,10 @@ func Commands(node kademlia.Node, commands []string) {
 		} else {
 			fmt.Println("No argument!")
 		}
-
 	case "t":
-		c := node.RT.GetMe()
-		node.NodeLookup(c)
+		c := kademlia.NewContact(kademlia.NewRandomNodeID(), "10.0.8.9")
+		c.CalcDistance(node.RT.GetMeID())
+		fmt.Println(node.NodeLookup(c.ID))
 	case "exit":
 		Exit()
 	case "e":
@@ -62,13 +62,11 @@ func Commands(node kademlia.Node, commands []string) {
 }
 
 func Put(node kademlia.Node, input string) {
-	// Convert string to []byte
-	// data := []byte(input)
 	node.StoreValue(input)
 }
 
 func Ping(node kademlia.Node, input string) {
-	node.Ping()
+	// node.Ping()
 }
 
 func Get(node kademlia.Node, hash string) {

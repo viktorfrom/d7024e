@@ -57,6 +57,13 @@ func (bucket *bucket) RemoveContact(contact Contact) {
 	}
 }
 
+// GetFirst retuns the first node in the bucket which should be
+// the least recently seen node
+func (bucket *bucket) GetFirst() *Contact {
+	contact := bucket.list.Front().Value.(Contact)
+	return &contact
+}
+
 // GetContactAndCalcDistance returns an array of Contacts where
 // the distance has already been calculated
 func (bucket *bucket) GetContactAndCalcDistance(target *NodeID) []Contact {
