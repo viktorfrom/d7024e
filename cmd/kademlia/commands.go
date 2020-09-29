@@ -70,7 +70,8 @@ func Ping(node kademlia.Node, input string) {
 }
 
 func Get(node kademlia.Node, hash string) {
-	node.FindValue(hash)
+	value := node.FindValue(hash)
+	println("value = ", value)
 }
 
 func Exit() {
@@ -78,7 +79,8 @@ func Exit() {
 }
 
 func Help() {
-	content, err := ioutil.ReadFile("prompt.txt")
+	content, err := ioutil.ReadFile("cmd/kademlia/prompt.txt")
+
 	if err != nil {
 		log.Fatal(err)
 	}
