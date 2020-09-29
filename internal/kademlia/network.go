@@ -17,18 +17,24 @@ const (
 )
 
 const (
-	udpNetwork     string = "udp4"
-	pingMsg        string = "PING"
-	errNoReply     string = "did not receive a reply"
-	errDiffAddr    string = "receive address not same as send address"
-	errDiffID      string = "rpc ID was different"
-	errNilRPC      string = "rpc struct is nil"
-	errNoContact   string = "no contact was given"
-	errBadKeyValue string = "bad or no key or value given"
+	udpNetwork string = "udp4"
+	pingMsg    string = "PING"
+)
+
+// Network error messages
+const (
+	errNoReply        string = "did not receive a reply"
+	errDiffAddr       string = "receive address not same as send address"
+	errDiffID         string = "RPC ID was different"
+	errNilRPC         string = "RPC struct is nil"
+	errInvalidRPCType string = "RPC type is invalid"
+	errNoContact      string = "no contact was given"
+	errBadKeyValue    string = "bad or no key or value given"
+	errNoRPCPayload   string = "no RPC payload given"
 )
 
 // the time before a RPC call times out
-const timeout = 10 * time.Second
+var timeout = 10 * time.Second
 
 type Network struct {
 	kademlia *Node
@@ -118,7 +124,7 @@ func (network *Network) handleIncomingRPCS(rpc *RPC, receiveAddr string) (*RPC, 
 	case FindValue:
 		retRPC, err = network.handleIncomingFindValueRPC(rpc)
 	default:
-		return nil, nil
+		return nil, errors.New(errInvalidRPCType)
 	}
 
 	if err != nil {
@@ -148,6 +154,11 @@ func (network *Network) handleIncomingPingRPC(rpc *RPC) (*RPC, error) {
 }
 
 func (network *Network) handleIncomingStoreRPC(rpc *RPC) (*RPC, error) {
+	err := checkNilRPCPayload(rpc)
+	if err != nil {
+		return nil, err
+	}
+
 	key := rpc.Payload.Key
 	value := rpc.Payload.Value
 	if key == nil || value == nil {
@@ -160,6 +171,11 @@ func (network *Network) handleIncomingStoreRPC(rpc *RPC) (*RPC, error) {
 }
 
 func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
+	err := checkNilRPCPayload(rpc)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(rpc.Payload.Contacts) == 0 {
 		return rpc, errors.New(errNoContact)
 	}
@@ -173,8 +189,17 @@ func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
 }
 
 func (network *Network) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
-	key := *rpc.Payload.Key
-	value := network.kademlia.searchLocalStore(key)
+	err := checkNilRPCPayload(rpc)
+	if err != nil {
+		return nil, err
+	}
+
+	key := rpc.Payload.Key
+	if key == nil {
+		return nil, errors.New(errBadKeyValue)
+	}
+
+	value := network.kademlia.searchLocalStore(*key)
 
 	// If no value is found - return k closest
 	if value == nil {
@@ -243,6 +268,11 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *Nod
 // case the receiving node needs information about the node who sent the RPC. Returns an error
 // if the contact fails to respond.
 func (network *Network) SendPingMessage(contact *Contact, sender *Contact) (*RPC, error) {
+	err := checkNilContacts(contact, sender)
+	if err != nil {
+		return nil, err
+	}
+
 	pingMsg := pingMsg
 	payload := Payload{nil, &pingMsg, nil}
 	rpc, err := network.sendRPC(contact, Ping, sender.ID, payload)
@@ -253,6 +283,11 @@ func (network *Network) SendPingMessage(contact *Contact, sender *Contact) (*RPC
 // SendFindContactMessage sends a FIND_NODE RPC to contact. `sender` is needed in case the receiving
 // node needs information about the node who sent the RPC. Returns an error if the contact fails to respond.
 func (network *Network) SendFindContactMessage(contact *Contact, sender *Contact) (*RPC, error) {
+	err := checkNilContacts(contact, sender)
+	if err != nil {
+		return nil, err
+	}
+
 	payload := Payload{nil, nil, []Contact{*contact}}
 	rpc, err := network.sendRPC(contact, FindNode, sender.ID, payload)
 
@@ -263,6 +298,11 @@ func (network *Network) SendFindContactMessage(contact *Contact, sender *Contact
 // value is found it will return the stored value otherwise the contacts `k` closest nodes will return.
 // Returns an error if the contact fails to respond.
 func (network *Network) SendFindDataMessage(contact *Contact, sender *Contact, key string) (*RPC, error) {
+	err := checkNilContacts(contact, sender)
+	if err != nil {
+		return nil, err
+	}
+
 	payload := Payload{&key, nil, nil}
 	rpc, err := network.sendRPC(contact, FindValue, sender.ID, payload)
 
@@ -272,8 +312,35 @@ func (network *Network) SendFindDataMessage(contact *Contact, sender *Contact, k
 // SendStoreMessage sends a STORE RPC to contact with a given `key`, `value`. Returns an error if the contact
 // fails to respond.
 func (network *Network) SendStoreMessage(contact *Contact, sender *Contact, key string, value string) (*RPC, error) {
+	err := checkNilContacts(contact, sender)
+	if err != nil {
+		return nil, err
+	}
+
 	payload := Payload{&key, &value, nil}
 	rpc, err := network.sendRPC(contact, Store, sender.ID, payload)
 
 	return rpc, err
+}
+
+func checkNilRPCPayload(rpc *RPC) error {
+	if rpc == nil {
+		return errors.New(errNilRPC)
+	}
+
+	if rpc.Payload == nil {
+		return errors.New(errNoRPCPayload)
+	}
+	return nil
+}
+
+func checkNilContacts(contact *Contact, sender *Contact) error {
+	if contact == nil && sender == nil {
+		return errors.New(errNoContact + ": contact & sender")
+	} else if contact == nil {
+		return errors.New(errNoContact + ": contact")
+	} else if sender == nil {
+		return errors.New(errNoContact + ": sender")
+	}
+	return nil
 }
