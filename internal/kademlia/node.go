@@ -101,18 +101,17 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 					if shortList.Len() >= BucketSize {
 						shortList.contacts = shortList.contacts[:BucketSize]
 					}
+
+					updateClosest = true
 				}
 
-				updateClosest = true
+				numProbed++
 			}
-
-			numProbed++
 		}
-		time.Sleep(1000 * time.Millisecond)
-	}
 
-	if !updateClosest || probedNodes.Len() >= BucketSize {
-		break
+		if !updateClosest || probedNodes.Len() >= BucketSize {
+			break
+		}
 	}
 
 	return shortList.contacts
