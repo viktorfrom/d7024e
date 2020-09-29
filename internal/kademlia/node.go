@@ -71,7 +71,7 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 			if probedNodes.Contains(shortList.contacts[i]) {
 				continue
 			} else {
-				rpc, err := kademlia.network.SendFindContactMessage(&shortList.contacts[i], &kademlia.RT.me)
+				rpc, err := kademlia.network.SendFindContactMessage(&shortList.contacts[i], &kademlia.RT.me, targetID)
 
 				// if a node responds with an error remove that node from the shortlist and from the bucket
 				if err != nil {
@@ -257,7 +257,7 @@ func (kademlia *Node) updateBucket(bucket bucket, contact Contact) {
 // if found else nil.
 func (kademlia *Node) searchLocalStore(key string) *string {
 	value, exists := kademlia.content[key]
-	if exists {
+	if !exists {
 		return nil
 	}
 	return &value

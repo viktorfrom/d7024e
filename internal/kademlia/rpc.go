@@ -27,11 +27,13 @@ var rpcTypes = []RPCType{Ping, Store, FindValue, FindNode, OK}
 
 // RPC contains the `Type` of the RPC, the `Payload` (data). A quasi random `ID` for
 // that RPC. `SenderID` which is the NodeID of the node who originally sent it.
+// `TargetID` is the NodeID we're looking for.
 type RPC struct {
 	Type     *RPCType `json:"type"`
 	Payload  *Payload `json:"payload"`
 	ID       *string  `json:"id"`
 	SenderID *string  `json:"senderID"`
+	TargetID *string  `json:"targetID"`
 }
 
 // Payload contains the data sent in RPCs. Can contain a value and/or a list of contacts.
@@ -44,7 +46,7 @@ type Payload struct {
 // NewRPC creates a new RPC with a random ID added to it. `rpc` is the type of the RPC,
 // `senderID` is the NodeID of the node who sends it. Returns an error
 // should the RPCType be wrong.
-func NewRPC(rpc RPCType, senderID string, payload Payload) (*RPC, error) {
+func NewRPC(rpc RPCType, senderID string, targetID string, payload Payload) (*RPC, error) {
 	err := validateRPCType(rpc)
 	if err != nil {
 		return nil, err
@@ -52,7 +54,7 @@ func NewRPC(rpc RPCType, senderID string, payload Payload) (*RPC, error) {
 
 	randomStr := randarr.RandomHexString(20)
 	randomID := string(randomStr)
-	newRPC := RPC{&rpc, &payload, &randomID, &senderID}
+	newRPC := RPC{&rpc, &payload, &randomID, &senderID, &targetID}
 
 	return &newRPC, nil
 }
