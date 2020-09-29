@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -9,55 +10,67 @@ import (
 	"github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
-func Commands(node kademlia.Node, commands []string) {
+const (
+	errNoArg       string = "No argument!"
+	errInvalidCmd  string = "Invalid command!"
+	errNoFileFound string = "Could not find or open file: "
+)
+
+var (
+	osExit   = os.Exit
+	logFatal = log.Fatal
+	helpFile = "prompt.txt"
+)
+
+// Commands handles the commands of the CLI. `output` is the io.Writer to output data to.
+// `node` is the Kademlia node this CLI runs for. `commands` a list of program commands.
+func Commands(output io.Writer, node *kademlia.Node, commands []string) {
 
 	switch commands[0] {
 	case "put":
 		if len(commands) == 2 {
-			Put(node, commands[1])
+			Put(*node, commands[1])
 		} else {
-			fmt.Println("No argument!")
+			fmt.Fprintln(output, errNoArg)
 		}
 	case "p":
 		if len(commands) == 2 {
-			Put(node, commands[1])
+			Put(*node, commands[1])
 		} else {
-			fmt.Println("No argument!")
+			fmt.Fprintln(output, errNoArg)
 		}
 	case "ping":
 		if len(commands) == 2 {
-			Ping(node, commands[1])
+			Ping(*node, commands[1])
+		} else {
+			fmt.Fprintln(output, errNoArg)
 		}
 	case "get":
 		if len(commands) == 2 {
-			Get(node, commands[1])
+			Get(*node, commands[1])
 		} else {
-			fmt.Println("No argument!")
+			fmt.Fprintln(output, errNoArg)
 		}
 	case "g":
 		if len(commands) == 2 {
-			Get(node, commands[1])
+			Get(*node, commands[1])
 		} else {
-			fmt.Println("No argument!")
+			fmt.Fprintln(output, errNoArg)
 		}
 	case "t":
 		c := kademlia.NewContact(kademlia.NewRandomNodeID(), "10.0.8.9")
 		c.CalcDistance(node.RT.GetMeID())
-		fmt.Println(node.NodeLookup(c.ID))
+		fmt.Fprintln(output, node.NodeLookup(c.ID))
 	case "exit":
 		Exit()
 	case "e":
 		Exit()
 	case "help":
-		Help()
+		Help(output)
 	case "h":
-		Help()
-	case "version":
-		Help()
-	case "v":
-		Help()
+		Help(output)
 	default:
-		fmt.Println("Invalid command!")
+		fmt.Fprintln(output, errInvalidCmd)
 	}
 }
 
@@ -75,18 +88,16 @@ func Get(node kademlia.Node, hash string) {
 }
 
 func Exit() {
-	os.Exit(3)
+	osExit(3)
 }
 
-func Help() {
-	content, err := ioutil.ReadFile("cmd/kademlia/prompt.txt")
-
+func Help(output io.Writer) {
+	content, err := ioutil.ReadFile(helpFile)
 	if err != nil {
-		log.Fatal(err)
+		logFatal(errNoFileFound + helpFile)
 	}
 
 	// Convert []byte to string and print to screen
 	text := string(content)
-	fmt.Println(text)
-
+	fmt.Fprintln(output, text)
 }
