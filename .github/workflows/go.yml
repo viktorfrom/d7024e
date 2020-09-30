@@ -41,7 +41,7 @@ jobs:
         REQUIRED_COVERAGE: 50.0
       run: |
         export TOTAL_COVERAGE=$(./scripts/get-total-coverage.sh)
-        if [ "$TOTAL_COVERAGE" -lt "$REQUIRED_COVERAGE"] then;
+        if [ "$TOTAL_COVERAGE" -lt "$REQUIRED_COVERAGE"]; then
             exit 1
         fi
         exit 0
