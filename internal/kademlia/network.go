@@ -29,6 +29,8 @@ const (
 	errNilRPC         string = "RPC struct is nil"
 	errInvalidRPCType string = "RPC type is invalid"
 	errNoContact      string = "no contact was given"
+	errNoTargetID     string = "no TargetID given"
+	errNoID           string = "no ID given"
 	errBadKeyValue    string = "bad or no key or value given"
 	errNoRPCPayload   string = "no RPC payload given"
 )
@@ -176,14 +178,19 @@ func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
 		return nil, err
 	}
 
-	if len(rpc.Payload.Contacts) == 0 {
-		return rpc, errors.New(errNoContact)
+	if rpc.TargetID == nil {
+		return nil, errors.New(errNoTargetID)
 	}
 
-	contacts := network.kademlia.RT.FindClosestContacts(rpc.Payload.Contacts[0].ID, BucketSize)
+	targetID := NewNodeID(*rpc.TargetID)
+	contacts := network.kademlia.RT.FindClosestContacts(targetID, BucketSize)
+
+	if len(contacts) == 0 {
+		return nil, errors.New(errNoContact)
+	}
 
 	payload := Payload{nil, nil, contacts}
-	*rpc.Payload = payload
+	rpc.Payload = &payload
 
 	return rpc, nil
 }
@@ -194,24 +201,31 @@ func (network *Network) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
 		return nil, err
 	}
 
+	if rpc.TargetID == nil {
+		return nil, errors.New(errNoTargetID)
+	}
+
 	key := rpc.Payload.Key
 	if key == nil {
 		return nil, errors.New(errBadKeyValue)
 	}
 
 	value := network.kademlia.searchLocalStore(*key)
-
 	// If no value is found - return k closest
 	if value == nil {
 		return network.handleIncomingFindNodeRPC(rpc)
 	}
 
-	*rpc.Payload.Value = *value
+	rpc.Payload.Value = value
 	return rpc, nil
 }
 
-func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *NodeID, payload Payload) (*RPC, error) {
-	rpc, _ := NewRPC(rpcType, senderID.String(), payload)
+func (network *Network) sendRPC(contact *Contact, rpcType RPCType, targetID, senderID *NodeID, payload Payload) (*RPC, error) {
+	if targetID == nil || senderID == nil {
+		return nil, errors.New(errNoID)
+	}
+
+	rpc, _ := NewRPC(rpcType, senderID.String(), targetID.String(), payload)
 	sendRPCID := *rpc.ID
 	readBuffer := make([]byte, 1024)
 
@@ -264,9 +278,9 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID *Nod
 	return reply, nil
 }
 
-// SendPingMessage sends a PING RPC to a contact and returns the response. `sender` is needed in
+// SendPingMessage sends a PING RPC to the `contact` and returns an acknowledgement. `sender` is needed in
 // case the receiving node needs information about the node who sent the RPC. Returns an error
-// if the contact fails to respond.
+// if the contact fails to respond or any argument is invalid.
 func (network *Network) SendPingMessage(contact *Contact, sender *Contact) (*RPC, error) {
 	err := checkNilContacts(contact, sender)
 	if err != nil {
@@ -275,42 +289,45 @@ func (network *Network) SendPingMessage(contact *Contact, sender *Contact) (*RPC
 
 	pingMsg := pingMsg
 	payload := Payload{nil, &pingMsg, nil}
-	rpc, err := network.sendRPC(contact, Ping, sender.ID, payload)
+	rpc, err := network.sendRPC(contact, Ping, sender.ID, contact.ID, payload)
 
 	return rpc, err
 }
 
-// SendFindContactMessage sends a FIND_NODE RPC to contact. `sender` is needed in case the receiving
-// node needs information about the node who sent the RPC. Returns an error if the contact fails to respond.
-func (network *Network) SendFindContactMessage(contact *Contact, sender *Contact) (*RPC, error) {
+// SendFindContactMessage sends a FIND_NODE RPC to `contact`. `sender` is needed in case the receiving
+// node needs information about the node who sent the RPC. `targetID` is the NodeID which is targeted in this RPC.
+// Returns an error if the contact fails to respond or any argument is invalid.
+func (network *Network) SendFindContactMessage(contact, sender *Contact, targetID *NodeID) (*RPC, error) {
 	err := checkNilContacts(contact, sender)
 	if err != nil {
 		return nil, err
 	}
 
-	payload := Payload{nil, nil, []Contact{*contact}}
-	rpc, err := network.sendRPC(contact, FindNode, sender.ID, payload)
+	payload := Payload{nil, nil, []Contact{}}
+	rpc, err := network.sendRPC(contact, FindNode, sender.ID, targetID, payload)
 
 	return rpc, err
 }
 
-// SendFindDataMessage sends a FIND_VALUE RPC to contact looking for the value belonging to `key`. If the
+// SendFindDataMessage sends a FIND_VALUE RPC to `contact` looking for the value belonging to `key`. If the
 // value is found it will return the stored value otherwise the contacts `k` closest nodes will return.
-// Returns an error if the contact fails to respond.
-func (network *Network) SendFindDataMessage(contact *Contact, sender *Contact, key string) (*RPC, error) {
+// Note that `key` is the hash of the value, it is used as a TargetID internally because they share the same
+// ID space. Returns an error if the contact fails to respond or any argument is invalid.
+func (network *Network) SendFindDataMessage(contact, sender *Contact, key string) (*RPC, error) {
 	err := checkNilContacts(contact, sender)
 	if err != nil {
 		return nil, err
 	}
 
+	targetID := NewNodeID(key)
 	payload := Payload{&key, nil, nil}
-	rpc, err := network.sendRPC(contact, FindValue, sender.ID, payload)
+	rpc, err := network.sendRPC(contact, FindValue, sender.ID, targetID, payload)
 
 	return rpc, err
 }
 
-// SendStoreMessage sends a STORE RPC to contact with a given `key`, `value`. Returns an error if the contact
-// fails to respond.
+// SendStoreMessage sends a STORE RPC to `contact` with a given `key`, `value`. `sender` is the node that sends this
+// RPC. Note that `key` is the hash of `value`. Returns an error if the contact fails to respond or any argument is invalid.
 func (network *Network) SendStoreMessage(contact *Contact, sender *Contact, key string, value string) (*RPC, error) {
 	err := checkNilContacts(contact, sender)
 	if err != nil {
@@ -318,7 +335,7 @@ func (network *Network) SendStoreMessage(contact *Contact, sender *Contact, key 
 	}
 
 	payload := Payload{&key, &value, nil}
-	rpc, err := network.sendRPC(contact, Store, sender.ID, payload)
+	rpc, err := network.sendRPC(contact, Store, sender.ID, contact.ID, payload)
 
 	return rpc, err
 }

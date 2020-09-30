@@ -8,9 +8,11 @@ import (
 
 func TestRPCUnmarshal(t *testing.T) {
 	msg := "hello"
-	contact := NewContact(NewRandomNodeID(), "10.0.8.2")
+	nodeID := NewRandomNodeID()
+	targetID := NewRandomNodeID()
+	contact := NewContact(nodeID, "10.0.8.2")
 	payload := Payload{nil, &msg, []Contact{contact}}
-	originalRPC, _ := NewRPC(Ping, "10.0.8.1", payload)
+	originalRPC, _ := NewRPC(Ping, nodeID.String(), targetID.String(), payload)
 
 	data, _ := MarshalRPC(*originalRPC)
 	marshalledRPC, _ := UnmarshalRPC(data)
@@ -29,7 +31,7 @@ func TestRPCWrongDataUnmarshal(t *testing.T) {
 func TestRPCValidateID(t *testing.T) {
 	msg := "hello"
 	payload := Payload{nil, &msg, nil}
-	originalRPC, _ := NewRPC(Store, "10.0.8.1", payload)
+	originalRPC, _ := NewRPC(Store, "", "", payload)
 	originalID := *originalRPC.ID
 
 	data, _ := MarshalRPC(*originalRPC)
@@ -56,7 +58,7 @@ func TestNewRPCCorrectTypes(t *testing.T) {
 	payload := Payload{nil, &msg, nil}
 
 	for _, rpcType := range rpcTypes {
-		_, err := NewRPC(rpcType, "10.0.8.1", payload)
+		_, err := NewRPC(rpcType, "", "", payload)
 		assert.NoError(t, err)
 	}
 }
@@ -65,6 +67,6 @@ func TestNewRPCWrongType(t *testing.T) {
 	msg := "good bye"
 	payload := Payload{nil, &msg, nil}
 
-	_, err := NewRPC("wrong type", "10.0.8.1", payload)
+	_, err := NewRPC("wrong type", "", "", payload)
 	assert.Error(t, err)
 }
