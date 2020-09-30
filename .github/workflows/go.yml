@@ -35,3 +35,15 @@ jobs:
 
     - name: Unit Tests
       run: go test -v ./...
+    
+    - name: Check test coverage
+      env:
+        REQUIRED_COVERAGE: 50
+      run: |
+        export TOTAL_COVERAGE=$(./scripts/get-total-coverage.sh)
+        echo $TOTAL_COVERAGE
+        export COVERAGE_ROUNDED=${TOTAL_COVERAGE%.*}
+        if [ $COVERAGE_ROUNDED -lt $REQUIRED_COVERAGE ]; then
+            exit 1
+        fi
+        exit 0
