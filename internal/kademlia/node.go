@@ -97,7 +97,7 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 
 				// if the closest node in the payload is less than the currentClosest
 				// update the shortlist and the currentClosest node
-				if rpc.Payload.Contacts[0].Less(&currentClosest) {
+				if len(rpc.Payload.Contacts) > 0 && rpc.Payload.Contacts[0].Less(&currentClosest) {
 					currentClosest = rpc.Payload.Contacts[0]
 					shortList.AppendUnique(rpc.Payload.Contacts)
 					shortList.Sort()

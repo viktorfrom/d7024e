@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -108,7 +109,7 @@ func (network *Network) handleUDP(conn *net.UDPConn) error {
 			continue
 		}
 
-		rpc, err = network.handleIncomingRPCS(rpc, receiveAddr.String())
+		rpc, err = network.handleIncomingRPCS(rpc, strings.Split(receiveAddr.String(), ":")[0])
 		if err != nil {
 			log.Warn(err)
 			continue
@@ -192,10 +193,6 @@ func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
 	targetID := NewNodeID(*rpc.TargetID)
 	log.Info("new targetID: ", targetID)
 	contacts := network.kademlia.RT.FindClosestContacts(targetID, BucketSize)
-
-	if len(contacts) == 0 {
-		return nil, errors.New(errNoContact + ": no contacts in bucket")
-	}
 
 	payload := Payload{nil, nil, contacts}
 	rpc.Payload = &payload
