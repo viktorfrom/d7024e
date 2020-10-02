@@ -98,6 +98,8 @@ func (network *Network) handleUDP(conn *net.UDPConn) error {
 		if err != nil {
 			log.Warn(err)
 			continue
+		} else if bytesRead == 0 {
+			continue
 		}
 
 		rpc, err := UnmarshalRPC(readBuffer[0:bytesRead])
@@ -107,6 +109,10 @@ func (network *Network) handleUDP(conn *net.UDPConn) error {
 		}
 
 		rpc, err = network.handleIncomingRPCS(rpc, receiveAddr.String())
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
 		data, err := MarshalRPC(*rpc)
 
 		conn.WriteToUDP(data, receiveAddr)
@@ -126,7 +132,7 @@ func (network *Network) handleIncomingRPCS(rpc *RPC, receiveAddr string) (*RPC, 
 	case FindValue:
 		retRPC, err = network.handleIncomingFindValueRPC(rpc)
 	default:
-		return nil, errors.New(errInvalidRPCType)
+		return rpc, errors.New(errInvalidRPCType)
 	}
 
 	if err != nil {
@@ -182,11 +188,13 @@ func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
 		return nil, errors.New(errNoTargetID)
 	}
 
+	log.Info("rpc targetID: ", *rpc.TargetID)
 	targetID := NewNodeID(*rpc.TargetID)
+	log.Info("new targetID: ", targetID)
 	contacts := network.kademlia.RT.FindClosestContacts(targetID, BucketSize)
 
 	if len(contacts) == 0 {
-		return nil, errors.New(errNoContact)
+		return nil, errors.New(errNoContact + ": no contacts in bucket")
 	}
 
 	payload := Payload{nil, nil, contacts}
@@ -198,15 +206,18 @@ func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
 func (network *Network) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
 	err := checkNilRPCPayload(rpc)
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 
 	if rpc.TargetID == nil {
+		log.Warn(errNoTargetID)
 		return nil, errors.New(errNoTargetID)
 	}
 
 	key := rpc.Payload.Key
 	if key == nil {
+		log.Warn(errBadKeyValue)
 		return nil, errors.New(errBadKeyValue)
 	}
 
@@ -220,8 +231,9 @@ func (network *Network) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
 	return rpc, nil
 }
 
-func (network *Network) sendRPC(contact *Contact, rpcType RPCType, targetID, senderID *NodeID, payload Payload) (*RPC, error) {
+func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID, targetID *NodeID, payload Payload) (*RPC, error) {
 	if targetID == nil || senderID == nil {
+		log.Warn(errNoID)
 		return nil, errors.New(errNoID)
 	}
 
@@ -231,16 +243,19 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, targetID, sen
 
 	msg, err := MarshalRPC(*rpc)
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 
 	sendAddr, err := net.ResolveUDPAddr(udpNetwork, contact.Address)
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 
 	conn, err := net.DialUDP(udpNetwork, nil, sendAddr)
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 	defer conn.Close()
@@ -250,28 +265,34 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, targetID, sen
 
 	_, err = conn.Write(msg)
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 
 	bytesRead, receiveAddr, err := conn.ReadFromUDP(readBuffer)
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 
 	if bytesRead == 0 {
+		log.Warn(errNoReply)
 		return nil, errors.New(errNoReply)
 	}
 
 	if receiveAddr.String() != sendAddr.String() {
+		log.Warn(errDiffAddr)
 		return nil, errors.New(errDiffAddr)
 	}
 
 	reply, err := UnmarshalRPC(readBuffer[0:bytesRead])
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 
 	if sendRPCID != *reply.ID {
+		log.Warn(errDiffID)
 		return nil, errors.New(errDiffID)
 	}
 
@@ -284,6 +305,7 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, targetID, sen
 func (network *Network) SendPingMessage(contact *Contact, sender *Contact) (*RPC, error) {
 	err := checkNilContacts(contact, sender)
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 
@@ -300,6 +322,7 @@ func (network *Network) SendPingMessage(contact *Contact, sender *Contact) (*RPC
 func (network *Network) SendFindContactMessage(contact, sender *Contact, targetID *NodeID) (*RPC, error) {
 	err := checkNilContacts(contact, sender)
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 
@@ -316,6 +339,7 @@ func (network *Network) SendFindContactMessage(contact, sender *Contact, targetI
 func (network *Network) SendFindDataMessage(contact, sender *Contact, key string) (*RPC, error) {
 	err := checkNilContacts(contact, sender)
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 
@@ -331,6 +355,7 @@ func (network *Network) SendFindDataMessage(contact, sender *Contact, key string
 func (network *Network) SendStoreMessage(contact *Contact, sender *Contact, key string, value string) (*RPC, error) {
 	err := checkNilContacts(contact, sender)
 	if err != nil {
+		log.Warn(err)
 		return nil, err
 	}
 

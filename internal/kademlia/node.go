@@ -3,6 +3,7 @@ package kademlia
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -54,6 +55,8 @@ func (kademlia *Node) InitNode() {
 func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 	alpha := 1
 	shortList := ContactCandidates{kademlia.RT.FindClosestContacts(targetID, alpha)}
+
+	fmt.Println("shortlist: ", shortList.contacts)
 
 	// set a temporary value to currentClosest that is the furthest away a node can be
 	currentClosest := NewContact(NewNodeID("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), "")

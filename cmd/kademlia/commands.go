@@ -58,9 +58,12 @@ func Commands(output io.Writer, node *kademlia.Node, commands []string) {
 			fmt.Fprintln(output, errNoArg)
 		}
 	case "t":
-		c := kademlia.NewContact(kademlia.NewRandomNodeID(), "10.0.8.9")
+		//c := kademlia.NewContact(kademlia.NewRandomNodeID(), "10.0.8.9")
+		c := kademlia.NewContact(kademlia.NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.3:8080")
 		c.CalcDistance(node.RT.GetMeID())
 		fmt.Fprintln(output, node.NodeLookup(c.ID))
+	case "info":
+		fmt.Println("ID: ", node.RT.GetMeID())
 	case "exit":
 		Exit()
 	case "e":
