@@ -71,7 +71,7 @@ func TestHandleIncomingFindNode(t *testing.T) {
 	rpc, err := NewRPC(FindNode, "00000000000000000000000000000000FFFFFFFF", "1111111100000000000000000000000000000000", payload)
 
 	_, err = network.handleIncomingFindNodeRPC(rpc)
-	assert.Equal(t, errors.New(errNoContact), err)
+	assert.Nil(t, err)
 
 	_, err = network.handleIncomingFindNodeRPC(nil)
 	assert.Equal(t, errors.New(errNilRPC), err)
@@ -132,7 +132,7 @@ func TestHandleIncomingRPCsFindValue(t *testing.T) {
 
 	nodeRPC, _ := NewRPC(FindNode, "1111111100000000000000000000000000000000", "00000100000000000000000000000000FFFFFFFF", Payload{nil, nil, []Contact{}})
 	_, err := network.handleIncomingRPCS(nodeRPC, "10.0.8.3:8080")
-	assert.Error(t, err)
+	assert.Nil(t, err)
 }
 
 func TestPingError(t *testing.T) {
@@ -225,7 +225,7 @@ func TestHandleIncomingFindValueNoValueInStore(t *testing.T) {
 	payload := Payload{&key, nil, []Contact{}}
 	rpc, _ := NewRPC(FindValue, "00000000000000000000000000000000FFFFFFFF", "1111111100000000000000000000000000000000", payload)
 	rpc, err := network.handleIncomingFindValueRPC(rpc)
-	assert.Equal(t, errors.New(errNoContact), err)
+	assert.Equal(t, nil, err)
 }
 
 func TestHandleIncomingFindValueExist(t *testing.T) {
