@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/viktorfrom/d7024e-kademlia/pkg/randarr"
 )
 
@@ -52,8 +51,6 @@ func NewRPC(rpc RPCType, senderID string, targetID string, payload Payload) (*RP
 	if err != nil {
 		return nil, err
 	}
-
-	log.Info("RPC: ", targetID)
 
 	randomStr := randarr.RandomHexString(20)
 	randomID := string(randomStr)

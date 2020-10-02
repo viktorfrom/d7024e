@@ -189,9 +189,7 @@ func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
 		return nil, errors.New(errNoTargetID)
 	}
 
-	log.Info("rpc targetID: ", *rpc.TargetID)
 	targetID := NewNodeID(*rpc.TargetID)
-	log.Info("new targetID: ", targetID)
 	contacts := network.kademlia.RT.FindClosestContacts(targetID, BucketSize)
 
 	payload := Payload{nil, nil, contacts}
