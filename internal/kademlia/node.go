@@ -150,8 +150,10 @@ func (kademlia *Node) FindValue(hash string) string {
 				} else {
 					rpc, err := kademlia.network.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
 
-					if *rpc.Payload.Value != "" {
-						return *rpc.Payload.Value
+					if rpc.Payload.Value != nil {
+						if *rpc.Payload.Value != "" {
+							return *rpc.Payload.Value
+						}
 					}
 
 					// if a node responds with an error remove that node from the shortlist and from the bucket
