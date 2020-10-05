@@ -42,10 +42,17 @@ func (kademlia *Node) InitNode() {
 	if ip != "10.0.8.3" {
 		rendezvousNode := NewContact(rendezvousID, "10.0.8.3:8080")
 
-		// wait a second before trying to join the network to allow the rendezvousNode
-		// to become active
-		time.Sleep(1 * time.Second)
-		kademlia.JoinNetwork(rendezvousNode)
+		for {
+			_, err := kademlia.network.SendPingMessage(&rendezvousNode, &me)
+
+			if err == nil {
+				log.Info("Rendezvous node is live, joining network")
+				kademlia.JoinNetwork(rendezvousNode)
+				break
+			} else {
+				log.Warn("Rendezvous node is not live")
+			}
+		}
 	}
 
 	kademlia.content = make(map[string]string)
