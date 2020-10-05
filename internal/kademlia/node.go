@@ -42,6 +42,7 @@ func (kademlia *Node) InitNode() {
 	if ip != "10.0.8.3" {
 		rendezvousNode := NewContact(rendezvousID, "10.0.8.3:8080")
 
+		// ping the rendevouz node to know that it is live before trying to join the network
 		for {
 			_, err := kademlia.network.SendPingMessage(&rendezvousNode, &me)
 
