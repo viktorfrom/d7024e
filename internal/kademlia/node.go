@@ -42,10 +42,18 @@ func (kademlia *Node) InitNode() {
 	if ip != "10.0.8.3" {
 		rendezvousNode := NewContact(rendezvousID, "10.0.8.3:8080")
 
-		// wait a second before trying to join the network to allow the rendezvousNode
-		// to become active
-		time.Sleep(1 * time.Second)
-		kademlia.JoinNetwork(rendezvousNode)
+		// ping the rendevouz node to know that it is live before trying to join the network
+		for {
+			_, err := kademlia.network.SendPingMessage(&rendezvousNode, &me)
+
+			if err == nil {
+				log.Info("Rendezvous node is live, joining network")
+				kademlia.JoinNetwork(rendezvousNode)
+				break
+			} else {
+				log.Warn("Rendezvous node is not live")
+			}
+		}
 	}
 
 	kademlia.content = make(map[string]string)
@@ -143,8 +151,10 @@ func (kademlia *Node) FindValue(hash string) string {
 				} else {
 					rpc, err := kademlia.network.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
 
-					if *rpc.Payload.Value != "" {
-						return *rpc.Payload.Value
+					if rpc.Payload.Value != nil {
+						if *rpc.Payload.Value != "" {
+							return *rpc.Payload.Value
+						}
 					}
 
 					// if a node responds with an error remove that node from the shortlist and from the bucket
