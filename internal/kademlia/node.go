@@ -9,17 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//Node a struct representing a node in the kademlia network
 type Node struct {
 	RT      *RoutingTable
-	network Network
+	client  Client
 	content map[string]string
 }
 
 // InitNode initializes the Kademlia Node
 // with a Routing Table and a Network
 func (kademlia *Node) InitNode() {
-	kademlia.network = NewNetwork(kademlia)
-	ip := kademlia.network.ip
+	kademlia.client = InitClient()
+	ip := kademlia.client.ip
 
 	var id *NodeID
 
@@ -33,8 +34,6 @@ func (kademlia *Node) InitNode() {
 		id = NewRandomNodeID()
 	}
 
-	go kademlia.network.Listen(ip, "8080")
-
 	me := NewContact(id, ip+":8080")
 	me.CalcDistance(me.ID)
 	kademlia.RT = NewRoutingTable(me)
@@ -44,7 +43,7 @@ func (kademlia *Node) InitNode() {
 
 		// ping the rendevouz node to know that it is live before trying to join the network
 		for {
-			_, err := kademlia.network.SendPingMessage(&rendezvousNode, &me)
+			_, err := kademlia.client.SendPingMessage(&rendezvousNode, &me)
 
 			if err == nil {
 				log.Info("Rendezvous node is live, joining network")
@@ -59,6 +58,7 @@ func (kademlia *Node) InitNode() {
 	kademlia.content = make(map[string]string)
 }
 
+//NodeLookup - finds the k closests nodes to a target ID in the kademlia network
 func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 	alpha := 1
 	shortList := ContactCandidates{kademlia.RT.FindClosestContacts(targetID, alpha)}
@@ -80,7 +80,7 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 				continue
 
 			} else {
-				rpc, err := kademlia.network.SendFindContactMessage(&shortList.contacts[i], &kademlia.RT.me, targetID)
+				rpc, err := kademlia.client.SendFindContactMessage(&shortList.contacts[i], &kademlia.RT.me, targetID)
 
 				// if a node responds with an error remove that node
 				// from the shortlist and from the bucket
@@ -110,6 +110,7 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 	return shortList.contacts
 }
 
+//FindValue - finds a value stored in the kademlia network
 func (kademlia *Node) FindValue(hash string) string {
 	if content, ok := kademlia.content[hash]; ok {
 		return content
@@ -134,7 +135,7 @@ func (kademlia *Node) FindValue(hash string) string {
 				if probedNodes.Contains(shortList.contacts[i]) {
 					continue
 				} else {
-					rpc, err := kademlia.network.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
+					rpc, err := kademlia.client.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
 
 					if rpc.Payload.Value != nil && *rpc.Payload.Value != "" {
 						return *rpc.Payload.Value
@@ -227,7 +228,7 @@ func (kademlia *Node) StoreValue(data string) {
 
 	// for each of the closest nodes send a store RPC
 	for _, node := range nodes {
-		_, err := kademlia.network.SendStoreMessage(&node, &kademlia.RT.me, key, data)
+		_, err := kademlia.client.SendStoreMessage(&node, &kademlia.RT.me, key, data)
 
 		if err != nil {
 			log.Warn(err)
@@ -244,7 +245,7 @@ func (kademlia *Node) StoreValue(data string) {
 // if the node responds move it to the end of the bucket it exists in
 // if the node does not respond remove it from the bucket
 func (kademlia *Node) Ping(target *Contact) {
-	rpc, err := kademlia.network.SendPingMessage(target, &kademlia.RT.me)
+	rpc, err := kademlia.client.SendPingMessage(target, &kademlia.RT.me)
 
 	if err != nil {
 		log.Warn(err)
