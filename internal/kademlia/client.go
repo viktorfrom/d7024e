@@ -8,13 +8,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type Message struct {
+	reciever Contact
+	rpc      RPC
+	err      error
+}
+
 type Client struct {
-	ip string
+	ip   string
+	send chan Message
+	resp chan Message
 }
 
 func InitClient() Client {
 	client := Client{}
 	client.ip = client.GetLocalIP()
+	client.send = make(chan Message)
+	client.resp = make(chan Message)
+	go client.sendRPC()
 	return client
 }
 
@@ -35,72 +46,87 @@ func (client *Client) GetLocalIP() string {
 	return ""
 }
 
-func (client *Client) sendRPC(contact *Contact, rpcType RPCType, senderID, targetID *NodeID, payload Payload) (*RPC, error) {
-	if targetID == nil || senderID == nil {
-		log.Warn(errNoID)
-		return nil, errors.New(errNoID)
+func (client *Client) sendRPC() {
+	for {
+		message := <-client.send
+		rpc := message.rpc
+		reciever := message.reciever
+
+		if rpc.TargetID == nil || rpc.SenderID == nil {
+			log.Warn(errNoID)
+			client.resp <- Message{Contact{}, RPC{}, errors.New(errNoID)}
+			continue
+		}
+
+		sendRPCID := *rpc.ID
+		readBuffer := make([]byte, 1024)
+
+		msg, err := MarshalRPC(rpc)
+		if err != nil {
+			log.Warn(err)
+			client.resp <- Message{Contact{}, RPC{}, err}
+			continue
+		}
+
+		sendAddr, err := net.ResolveUDPAddr(udpNetwork, reciever.Address)
+		if err != nil {
+			log.Warn(err)
+			client.resp <- Message{Contact{}, RPC{}, err}
+			continue
+		}
+
+		conn, err := net.DialUDP(udpNetwork, nil, sendAddr)
+		if err != nil {
+			log.Warn(err)
+			client.resp <- Message{Contact{}, RPC{}, err}
+			continue
+		}
+		defer conn.Close()
+
+		conn.SetDeadline(time.Now().Add(timeout))
+		conn.SetReadDeadline(time.Now().Add(timeout))
+
+		_, err = conn.Write(msg)
+		if err != nil {
+			log.Warn(err)
+			client.resp <- Message{Contact{}, RPC{}, err}
+			continue
+		}
+
+		bytesRead, receiveAddr, err := conn.ReadFromUDP(readBuffer)
+		if err != nil {
+			log.Warn(err)
+			client.resp <- Message{Contact{}, RPC{}, err}
+			continue
+		}
+
+		if bytesRead == 0 {
+			log.Warn(errNoReply)
+			client.resp <- Message{Contact{}, RPC{}, errors.New(errNoReply)}
+			continue
+		}
+
+		if receiveAddr.String() != sendAddr.String() {
+			log.Warn(errDiffAddr)
+			client.resp <- Message{Contact{}, RPC{}, errors.New(errDiffAddr)}
+			continue
+		}
+
+		reply, err := UnmarshalRPC(readBuffer[0:bytesRead])
+		if err != nil {
+			log.Warn(err)
+			client.resp <- Message{Contact{}, RPC{}, err}
+			continue
+		}
+
+		if sendRPCID != *reply.ID {
+			log.Warn(errDiffID)
+			client.resp <- Message{Contact{}, RPC{}, errors.New(errDiffID)}
+			continue
+		}
+
+		client.resp <- Message{reciever, *reply, nil}
 	}
-
-	rpc, _ := NewRPC(rpcType, senderID.String(), targetID.String(), payload)
-	sendRPCID := *rpc.ID
-	readBuffer := make([]byte, 1024)
-
-	msg, err := MarshalRPC(*rpc)
-	if err != nil {
-		log.Warn(err)
-		return nil, err
-	}
-
-	sendAddr, err := net.ResolveUDPAddr(udpNetwork, contact.Address)
-	if err != nil {
-		log.Warn(err)
-		return nil, err
-	}
-
-	conn, err := net.DialUDP(udpNetwork, nil, sendAddr)
-	if err != nil {
-		log.Warn(err)
-		return nil, err
-	}
-	defer conn.Close()
-
-	conn.SetDeadline(time.Now().Add(timeout))
-	conn.SetReadDeadline(time.Now().Add(timeout))
-
-	_, err = conn.Write(msg)
-	if err != nil {
-		log.Warn(err)
-		return nil, err
-	}
-
-	bytesRead, receiveAddr, err := conn.ReadFromUDP(readBuffer)
-	if err != nil {
-		log.Warn(err)
-		return nil, err
-	}
-
-	if bytesRead == 0 {
-		log.Warn(errNoReply)
-		return nil, errors.New(errNoReply)
-	}
-
-	if receiveAddr.String() != sendAddr.String() {
-		log.Warn(errDiffAddr)
-		return nil, errors.New(errDiffAddr)
-	}
-
-	reply, err := UnmarshalRPC(readBuffer[0:bytesRead])
-	if err != nil {
-		log.Warn(err)
-		return nil, err
-	}
-
-	if sendRPCID != *reply.ID {
-		log.Warn(errDiffID)
-		return nil, errors.New(errDiffID)
-	}
-
-	return reply, nil
 }
 
 // SendPingMessage sends a PING RPC to the `contact` and returns an acknowledgement. `sender` is needed in
@@ -115,9 +141,18 @@ func (client *Client) SendPingMessage(contact *Contact, sender *Contact) (*RPC, 
 
 	pingMsg := pingMsg
 	payload := Payload{nil, &pingMsg, nil}
-	rpc, err := client.sendRPC(contact, Ping, sender.ID, contact.ID, payload)
+	rpc, _ := NewRPC(Ping, sender.ID.String(), contact.ID.String(), payload)
 
-	return rpc, err
+	client.send <- Message{*contact, *rpc, nil}
+
+	resp := <-client.resp
+
+	if resp.err != nil {
+		log.Warn(resp.err)
+		return nil, resp.err
+	}
+
+	return &resp.rpc, resp.err
 }
 
 // SendFindContactMessage sends a FIND_NODE RPC to `contact`. `sender` is needed in case the receiving
@@ -131,9 +166,17 @@ func (client *Client) SendFindContactMessage(contact, sender *Contact, targetID 
 	}
 
 	payload := Payload{nil, nil, []Contact{}}
-	rpc, err := client.sendRPC(contact, FindNode, sender.ID, targetID, payload)
+	rpc, _ := NewRPC(FindNode, sender.ID.String(), targetID.String(), payload)
 
-	return rpc, err
+	client.send <- Message{*contact, *rpc, nil}
+	resp := <-client.resp
+
+	if resp.err != nil {
+		log.Warn(resp.err)
+		return nil, resp.err
+	}
+
+	return &resp.rpc, resp.err
 }
 
 // SendFindDataMessage sends a FIND_VALUE RPC to `contact` looking for the value belonging to `key`. If the
@@ -149,9 +192,18 @@ func (client *Client) SendFindDataMessage(contact, sender *Contact, key string) 
 
 	targetID := NewNodeID(key)
 	payload := Payload{&key, nil, nil}
-	rpc, err := client.sendRPC(contact, FindValue, sender.ID, targetID, payload)
 
-	return rpc, err
+	rpc, _ := NewRPC(FindValue, sender.ID.String(), targetID.String(), payload)
+
+	client.send <- Message{*contact, *rpc, nil}
+	resp := <-client.resp
+
+	if resp.err != nil {
+		log.Warn(resp.err)
+		return nil, resp.err
+	}
+
+	return &resp.rpc, resp.err
 }
 
 // SendStoreMessage sends a STORE RPC to `contact` with a given `key`, `value`. `sender` is the node that sends this
@@ -164,9 +216,18 @@ func (client *Client) SendStoreMessage(contact *Contact, sender *Contact, key st
 	}
 
 	payload := Payload{&key, &value, nil}
-	rpc, err := client.sendRPC(contact, Store, sender.ID, contact.ID, payload)
+	// rpc, err := client.sendRPC(contact, Store, sender.ID, contact.ID, payload)
+	rpc, _ := NewRPC(Store, sender.ID.String(), contact.ID.String(), payload)
 
-	return rpc, err
+	client.send <- Message{*contact, *rpc, nil}
+	resp := <-client.resp
+
+	if resp.err != nil {
+		log.Warn(resp.err)
+		return nil, resp.err
+	}
+
+	return &resp.rpc, resp.err
 }
 
 func checkNilRPCPayload(rpc *RPC) error {
