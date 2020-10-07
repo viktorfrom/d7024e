@@ -99,8 +99,10 @@ func (kademlia *Node) findNodeAmongContacts(targetID *NodeID, alpha int, shortLi
 
 				bucket := kademlia.RT.buckets[kademlia.RT.getBucketIndex(shortList.contacts[i].ID)]
 
+				// if there is space in the bucket add the node
 				kademlia.updateBucket(*bucket, shortList.contacts[i])
 
+				// append contacts to shortlist if err is none
 				for i := 0; i < len(rpc.Payload.Contacts); i++ {
 					rpc.Payload.Contacts[i].CalcDistance(targetID)
 				}
@@ -170,7 +172,8 @@ func (kademlia *Node) findValueAmongContacts(hash string, alpha int, shortList C
 						}
 					}
 
-					// if a node responds with an error remove that node from the shortlist and from the bucket
+					// if a node responds with an error remove that node from the shortlist
+					// and from the bucket
 					if err != nil {
 						log.Warn(err)
 						kademlia.RT.RemoveContact(shortList.contacts[i])
@@ -231,7 +234,11 @@ func (kademlia *Node) findValueAmongContacts(hash string, alpha int, shortList C
 
 // if the closest node in the payload is less than the currentClosest
 // update the shortlist and the currentClosest node
-func (kademlia *Node) appendUniqueContacts(rpc *RPC, shortList ContactCandidates, currentClosest Contact, updateClosest bool) {
+func (kademlia *Node) appendUniqueContacts(rpc *RPC,
+	shortList ContactCandidates,
+	currentClosest Contact,
+	updateClosest bool) {
+
 	if rpc.Payload.Contacts[0].Less(&currentClosest) {
 		currentClosest = rpc.Payload.Contacts[0]
 		shortList.AppendUnique(rpc.Payload.Contacts)
