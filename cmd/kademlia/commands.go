@@ -63,7 +63,7 @@ func Commands(output io.Writer, node *kademlia.Node, commands []string) {
 		c.CalcDistance(node.RT.GetMeID())
 		fmt.Fprintln(output, node.NodeLookup(c.ID))
 	case "info":
-		fmt.Println("ID: ", node.RT.GetMeID())
+		fmt.Fprintln(output, "ID: ", node.RT.GetMeID())
 	case "exit":
 		Exit()
 	case "e":

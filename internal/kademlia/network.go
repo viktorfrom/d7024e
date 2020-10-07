@@ -133,7 +133,7 @@ func (network *Network) handleIncomingRPCS(rpc *RPC, receiveAddr string) (*RPC, 
 	case FindValue:
 		retRPC, err = network.handleIncomingFindValueRPC(rpc)
 	default:
-		return rpc, errors.New(errInvalidRPCType)
+		err = errors.New(errInvalidRPCType)
 	}
 
 	if err != nil {
@@ -201,18 +201,15 @@ func (network *Network) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
 func (network *Network) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
 	err := checkNilRPCPayload(rpc)
 	if err != nil {
-		log.Warn(err)
 		return nil, err
 	}
 
 	if rpc.TargetID == nil {
-		log.Warn(errNoTargetID)
 		return nil, errors.New(errNoTargetID)
 	}
 
 	key := rpc.Payload.Key
 	if key == nil {
-		log.Warn(errBadKeyValue)
 		return nil, errors.New(errBadKeyValue)
 	}
 
@@ -228,7 +225,6 @@ func (network *Network) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
 
 func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID, targetID *NodeID, payload Payload) (*RPC, error) {
 	if targetID == nil || senderID == nil {
-		log.Warn(errNoID)
 		return nil, errors.New(errNoID)
 	}
 
@@ -238,19 +234,16 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID, tar
 
 	msg, err := MarshalRPC(*rpc)
 	if err != nil {
-		log.Warn(err)
 		return nil, err
 	}
 
 	sendAddr, err := net.ResolveUDPAddr(udpNetwork, contact.Address)
 	if err != nil {
-		log.Warn(err)
 		return nil, err
 	}
 
 	conn, err := net.DialUDP(udpNetwork, nil, sendAddr)
 	if err != nil {
-		log.Warn(err)
 		return nil, err
 	}
 	defer conn.Close()
@@ -260,34 +253,28 @@ func (network *Network) sendRPC(contact *Contact, rpcType RPCType, senderID, tar
 
 	_, err = conn.Write(msg)
 	if err != nil {
-		log.Warn(err)
 		return nil, err
 	}
 
 	bytesRead, receiveAddr, err := conn.ReadFromUDP(readBuffer)
 	if err != nil {
-		log.Warn(err)
 		return nil, err
 	}
 
 	if bytesRead == 0 {
-		log.Warn(errNoReply)
 		return nil, errors.New(errNoReply)
 	}
 
 	if receiveAddr.String() != sendAddr.String() {
-		log.Warn(errDiffAddr)
 		return nil, errors.New(errDiffAddr)
 	}
 
 	reply, err := UnmarshalRPC(readBuffer[0:bytesRead])
 	if err != nil {
-		log.Warn(err)
 		return nil, err
 	}
 
 	if sendRPCID != *reply.ID {
-		log.Warn(errDiffID)
 		return nil, errors.New(errDiffID)
 	}
 

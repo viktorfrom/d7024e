@@ -61,41 +61,6 @@ func TestHandleIncomingPing(t *testing.T) {
 
 }
 
-func TestHandleIncomingFindNode(t *testing.T) {
-	node := Node{}
-	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
-	node.RT = NewRoutingTable(c)
-	network := NewNetwork(&node)
-	payload := Payload{nil, nil, []Contact{}}
-
-	rpc, err := NewRPC(FindNode, "00000000000000000000000000000000FFFFFFFF", "1111111100000000000000000000000000000000", payload)
-
-	_, err = network.handleIncomingFindNodeRPC(rpc)
-	assert.Nil(t, err)
-
-	_, err = network.handleIncomingFindNodeRPC(nil)
-	assert.Equal(t, errors.New(errNilRPC), err)
-
-	rpc.TargetID = nil
-	_, err = network.handleIncomingFindNodeRPC(rpc)
-	assert.Equal(t, errors.New(errNoTargetID), err)
-}
-
-func TestHandleIncomingFindNodeWithContacts(t *testing.T) {
-	node := Node{}
-	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
-	node.RT = NewRoutingTable(c)
-	network := NewNetwork(&node)
-	payload := Payload{nil, nil, []Contact{}}
-
-	newC := NewContact(NewNodeID("1111111100000000000000000000000000000000"), "10.0.8.2:8080")
-	node.RT.AddContact(newC)
-	rpc, _ := NewRPC(FindNode, "00000000000000000000000000000000FFFFFFFF", "1111111100000000000000000000000000000000", payload)
-	rpc, err := network.handleIncomingFindNodeRPC(rpc)
-	assert.Nil(t, err)
-	assert.Equal(t, rpc.Payload.Contacts[0].ID, newC.ID)
-}
-
 func TestHandleIncomingRPCS(t *testing.T) {
 	node := Node{}
 	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
@@ -135,7 +100,7 @@ func TestHandleIncomingRPCsFindValue(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestPingError(t *testing.T) {
+func TestSendPingError(t *testing.T) {
 	node := Node{}
 	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
 	node.RT = NewRoutingTable(c)
@@ -145,13 +110,13 @@ func TestPingError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestFindNodeError(t *testing.T) {
+func TestSendFindNodeError(t *testing.T) {
 	network := Network{}
 	_, err := network.SendFindContactMessage(nil, nil, nil)
 	assert.Error(t, err)
 }
 
-func TestFindValueError(t *testing.T) {
+func TestSendFindValueError(t *testing.T) {
 	node := Node{}
 	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
 	node.RT = NewRoutingTable(c)
@@ -161,47 +126,65 @@ func TestFindValueError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestStoreError(t *testing.T) {
+func TestSendStoreError(t *testing.T) {
 	network := Network{}
 	_, err := network.SendStoreMessage(nil, nil, "key", "value")
 	assert.Error(t, err)
 }
 
-func TestHandleIncomingStore(t *testing.T) {
-	node := Node{nil, Network{}, make(map[string]string)}
+func TestListenReservedPortError(t *testing.T) {
+	network := Network{}
+	// Port 1 is reserved and can never be used so should always throw error
+	err := network.Listen("127.0.0.1", "1")
+	assert.Error(t, err)
+}
+
+// The below tests, tests pure functionality
+// don't move anything above to below here before refactoring the tests!
+func TestIncomingFindNodeFindsCorrectContact(t *testing.T) {
+	senderID := "00000000000000000000000000000000FFFFFFFF"
+	targetID := "1111111100000000000000000000000000000000"
+
+	senderAddress := "10.0.8.1:8080"
+	targetAddress := "10.0.8.2:8080"
+
+	node := Node{}
+	c := NewContact(NewNodeID(senderID), senderAddress)
+	node.RT = NewRoutingTable(c)
+	network := NewNetwork(&node)
+	payload := Payload{nil, nil, []Contact{}}
+
+	target := NewContact(NewNodeID(targetID), targetAddress)
+	node.RT.AddContact(target)
+	rpc, _ := NewRPC(FindNode, senderID, targetID, payload)
+	rpc, err := network.handleIncomingFindNodeRPC(rpc)
+	assert.Nil(t, err)
+	assert.Equal(t, rpc.Payload.Contacts[0].ID, target.ID)
+}
+
+func TestIncomingFindNodeBadInput(t *testing.T) {
+	node := Node{}
 	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
 	node.RT = NewRoutingTable(c)
 	network := NewNetwork(&node)
-
-	key := "hello"
-	value := "good bye"
-	payload := Payload{&key, &value, []Contact{}}
-
-	rpc, _ := NewRPC(Store, "10000000000000000000000000000000FFFFFFFF", "00000000000000000000000000000000FFFFFFFF", payload)
-	rpc, err := network.handleIncomingStoreRPC(rpc)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, rpc)
-}
-
-func TestHandleIncomingStoreError(t *testing.T) {
-	storeType := Store
-
-	network := Network{}
-	_, err := network.handleIncomingStoreRPC(nil)
-	assert.Error(t, err)
-
-	rpc := RPC{&storeType, nil, nil, nil, nil}
-	_, err = network.handleIncomingStoreRPC(&rpc)
-	assert.Error(t, err)
-
 	payload := Payload{nil, nil, []Contact{}}
-	rpc = RPC{&storeType, &payload, nil, nil, nil}
-	_, err = network.handleIncomingStoreRPC(&rpc)
-	assert.Error(t, err)
+
+	rpc, err := NewRPC(FindNode, "00000000000000000000000000000000FFFFFFFF", "1111111100000000000000000000000000000000", payload)
+
+	_, err = network.handleIncomingFindNodeRPC(rpc)
+	assert.Nil(t, err)
+
+	_, err = network.handleIncomingFindNodeRPC(nil)
+	assert.Equal(t, errors.New(errNilRPC), err)
+
+	rpc.TargetID = nil
+	_, err = network.handleIncomingFindNodeRPC(rpc)
+	assert.Equal(t, errors.New(errNoTargetID), err)
 }
 
-func TestHandleIncomingFindValueWithoutKey(t *testing.T) {
+func TestIncomingFindValueNoKeyInPayload(t *testing.T) {
+	targetID := "1111111100000000000000000000000000000000"
+
 	findValue := FindValue
 	network := Network{}
 
@@ -209,13 +192,12 @@ func TestHandleIncomingFindValueWithoutKey(t *testing.T) {
 	assert.Equal(t, errors.New(errNilRPC), err)
 
 	payload := Payload{nil, nil, []Contact{}}
-	rpc := RPC{&findValue, &payload, nil, nil, nil}
+	rpc := RPC{&findValue, &payload, nil, nil, &targetID}
 	_, err = network.handleIncomingFindValueRPC(&rpc)
-	assert.Equal(t, errors.New(errNoTargetID), err)
-
+	assert.Equal(t, errors.New(errBadKeyValue), err)
 }
 
-func TestHandleIncomingFindValueNoValueInStore(t *testing.T) {
+func TestIncomingFindValueReturnClosestContacts(t *testing.T) {
 	node := Node{}
 	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
 	node.RT = NewRoutingTable(c)
@@ -224,11 +206,13 @@ func TestHandleIncomingFindValueNoValueInStore(t *testing.T) {
 	key := "1111111100000000000000000000000000000000"
 	payload := Payload{&key, nil, []Contact{}}
 	rpc, _ := NewRPC(FindValue, "00000000000000000000000000000000FFFFFFFF", "1111111100000000000000000000000000000000", payload)
-	rpc, err := network.handleIncomingFindValueRPC(rpc)
-	assert.Equal(t, nil, err)
+	rpc, _ = network.handleIncomingFindValueRPC(rpc)
+
+	assert.Nil(t, rpc.Payload.Value)
+	assert.Equal(t, []Contact(nil), rpc.Payload.Contacts)
 }
 
-func TestHandleIncomingFindValueExist(t *testing.T) {
+func TestIncomingFindValueFoundValue(t *testing.T) {
 	node := Node{nil, Network{}, make(map[string]string)}
 	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
 	node.RT = NewRoutingTable(c)
@@ -244,14 +228,23 @@ func TestHandleIncomingFindValueExist(t *testing.T) {
 	assert.Equal(t, value, *rpc.Payload.Value)
 }
 
-func TestListenErrors(t *testing.T) {
-	network := Network{}
-	// Port 1 is reserved and can never be used so should always throw error
-	err := network.Listen("127.0.0.1", "1")
-	assert.Error(t, err)
+func TestIncomingFindValueReturnsEmptyClosestContacts(t *testing.T) {
+	node := Node{nil, Network{}, make(map[string]string)}
+	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
+	node.RT = NewRoutingTable(c)
+	network := NewNetwork(&node)
+
+	payload := Payload{nil, nil, nil}
+	senderID := "00000000000000000000000000000000FFFFFFFF"
+	targetID := "00000000000000000000000000000000FFFFFFFF"
+	rpc, _ := NewRPC(FindValue, senderID, targetID, payload)
+
+	res, err := network.handleIncomingFindNodeRPC(rpc)
+	assert.NoError(t, err)
+	assert.Equal(t, []Contact(nil), res.Payload.Contacts)
 }
 
-func TestSendRPCNoNetwork(t *testing.T) {
+func TestSendRPCNoNetworkAvailable(t *testing.T) {
 	timeout = 0 * time.Second
 
 	network := Network{}
@@ -260,5 +253,42 @@ func TestSendRPCNoNetwork(t *testing.T) {
 
 	payload := Payload{nil, nil, []Contact{}}
 	_, err := network.sendRPC(&c, Ping, nodeID, nodeID, payload)
+	assert.Error(t, err)
+}
+
+func TestIncomingStoreSuccessfullyStoreValue(t *testing.T) {
+	node := Node{nil, Network{}, make(map[string]string)}
+	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
+	node.RT = NewRoutingTable(c)
+	network := NewNetwork(&node)
+
+	key := "hello"
+	value := "good bye"
+	payload := Payload{&key, &value, []Contact{}}
+
+	rpc, _ := NewRPC(Store, "10000000000000000000000000000000FFFFFFFF", "00000000000000000000000000000000FFFFFFFF", payload)
+	rpc, err := network.handleIncomingStoreRPC(rpc)
+
+	val := node.searchLocalStore(key)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, rpc)
+	assert.Equal(t, value, *val)
+}
+
+func TestIncomingStoreBadInput(t *testing.T) {
+	storeType := Store
+
+	network := Network{}
+	_, err := network.handleIncomingStoreRPC(nil)
+	assert.Error(t, err)
+
+	rpc := RPC{&storeType, nil, nil, nil, nil}
+	_, err = network.handleIncomingStoreRPC(&rpc)
+	assert.Error(t, err)
+
+	payload := Payload{nil, nil, []Contact{}}
+	rpc = RPC{&storeType, &payload, nil, nil, nil}
+	_, err = network.handleIncomingStoreRPC(&rpc)
 	assert.Error(t, err)
 }
