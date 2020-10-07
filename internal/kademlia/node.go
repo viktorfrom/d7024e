@@ -70,6 +70,11 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 	// a list of nodes to know which nodes has been probed already
 	probedNodes := ContactCandidates{}
 
+	return kademlia.findNodeAmongContacts(targetID, alpha, shortList, currentClosest, currentClosest.distance, probedNodes)
+
+}
+
+func (kademlia *Node) findNodeAmongContacts(targetID *NodeID, alpha int, shortList ContactCandidates, currentClosest Contact, distance *NodeID, probedNodes ContactCandidates) []Contact {
 	for {
 		updateClosest := false
 		numProbed := 0
@@ -81,7 +86,8 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 			} else {
 				rpc, err := kademlia.network.SendFindContactMessage(&shortList.contacts[i], &kademlia.RT.me, targetID)
 
-				// if a node responds with an error remove that node from the shortlist and from the bucket
+				// if a node responds with an error remove that node
+				// from the shortlist and from the bucket
 				if err != nil {
 					log.Warn(err)
 					kademlia.RT.RemoveContact(shortList.contacts[i])
@@ -95,23 +101,11 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 
 				kademlia.updateBucket(*bucket, shortList.contacts[i])
 
-				// append contacts to shortlist if err is none
 				for i := 0; i < len(rpc.Payload.Contacts); i++ {
 					rpc.Payload.Contacts[i].CalcDistance(targetID)
 				}
 
-				// if the closest node in the payload is less than the currentClosest
-				// update the shortlist and the currentClosest node
-				if len(rpc.Payload.Contacts) > 0 && rpc.Payload.Contacts[0].Less(&currentClosest) {
-					currentClosest = rpc.Payload.Contacts[0]
-					shortList.AppendUnique(rpc.Payload.Contacts)
-					shortList.Sort()
-					if shortList.Len() >= BucketSize {
-						shortList.contacts = shortList.contacts[:BucketSize]
-					}
-
-					updateClosest = true
-				}
+				kademlia.appendUniqueContacts(rpc, shortList, currentClosest, updateClosest)
 
 				numProbed++
 			}
@@ -140,13 +134,32 @@ func (kademlia *Node) FindValue(hash string) string {
 		// a list of nodes to know which nodes has been probed already
 		probedNodes := ContactCandidates{}
 
-		for {
-			updateClosest := false
-			numProbed := 0
+		return kademlia.findValueAmongContacts(hash, alpha, shortList, currentClosest, currentClosest.distance, probedNodes)
+	}
+}
 
-			for i := 0; i < shortList.Len() && numProbed < alpha; i++ {
+func (kademlia *Node) findValueAmongContacts(hash string, alpha int, shortList ContactCandidates, currentClosest Contact, distance *NodeID, probedNodes ContactCandidates) string {
+	for {
+		updateClosest := false
+		numProbed := 0
 
-				if probedNodes.Contains(shortList.contacts[i]) {
+		for i := 0; i < shortList.Len() && numProbed < alpha; i++ {
+
+			if probedNodes.Contains(shortList.contacts[i]) {
+				continue
+			} else {
+				rpc, err := kademlia.network.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
+
+				if *rpc.Payload.Value != "" {
+					return *rpc.Payload.Value
+				}
+
+				// if a node responds with an error remove that node
+				// from the shortlist and from the bucket
+				if err != nil {
+					log.Warn(err)
+					kademlia.RT.RemoveContact(shortList.contacts[i])
+					shortList.contacts = append(shortList.contacts[:i], shortList.contacts[i+1:]...)
 					continue
 				} else {
 					rpc, err := kademlia.network.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
@@ -192,15 +205,43 @@ func (kademlia *Node) FindValue(hash string) string {
 
 					numProbed++
 				}
-			}
 
-			if !updateClosest || probedNodes.Len() >= BucketSize {
-				break
+				probedNodes.Append([]Contact{shortList.contacts[i]})
+
+				bucket := kademlia.RT.buckets[kademlia.RT.getBucketIndex(shortList.contacts[i].ID)]
+
+				kademlia.updateBucket(*bucket, shortList.contacts[i])
+
+				for i := 0; i < len(rpc.Payload.Contacts); i++ {
+					rpc.Payload.Contacts[i].CalcDistance(NewNodeID(hash))
+				}
+
+				kademlia.appendUniqueContacts(rpc, shortList, currentClosest, updateClosest)
+
+				numProbed++
 			}
 		}
-	}
 
+		if !updateClosest || probedNodes.Len() >= BucketSize {
+			break
+		}
+	}
 	return "No value found!"
+}
+
+// if the closest node in the payload is less than the currentClosest
+// update the shortlist and the currentClosest node
+func (kademlia *Node) appendUniqueContacts(rpc *RPC, shortList ContactCandidates, currentClosest Contact, updateClosest bool) {
+	if rpc.Payload.Contacts[0].Less(&currentClosest) {
+		currentClosest = rpc.Payload.Contacts[0]
+		shortList.AppendUnique(rpc.Payload.Contacts)
+		shortList.Sort()
+		if shortList.Len() >= BucketSize {
+			shortList.contacts = shortList.contacts[:BucketSize]
+		}
+
+		updateClosest = true
+	}
 }
 
 // StoreValue takes some data, hashes it with SHA1 and finds the k closest
