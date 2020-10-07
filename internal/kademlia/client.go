@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//Message represents the data sent through the channels in the Client
 type Message struct {
 	reciever Contact
 	rpc      RPC
@@ -16,10 +17,11 @@ type Message struct {
 
 type Client struct {
 	ip   string
-	send chan Message
-	resp chan Message
+	send chan Message // channel for sending messages from the client to a server
+	resp chan Message // channel for the responses from the server to the client
 }
 
+//InitClient sets up and returns a client object
 func InitClient() Client {
 	client := Client{}
 	client.ip = client.GetLocalIP()
