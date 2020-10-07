@@ -19,7 +19,7 @@ const (
 var (
 	osExit   = os.Exit
 	logFatal = log.Fatal
-	helpFile = "prompt.txt"
+	helpFile = "cmd/kademlia/prompt.txt"
 )
 
 // Commands handles the commands of the CLI. `output` is the io.Writer to output data to.
