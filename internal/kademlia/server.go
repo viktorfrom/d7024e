@@ -38,16 +38,29 @@ const (
 // the time before a RPC call times out
 var timeout = 10 * time.Second
 
+type packet struct {
+	rpc  *RPC
+	ip   string
+	addr *net.UDPAddr
+}
+
+// Server handles incoming RPCs from other nodes and returns the
+// correct responses back to the originator nodes
 type Server struct {
 	kademlia *Node
 	ip       string
+	conn     *net.UDPConn
+	incoming chan packet
+	outgoing chan packet
 }
 
-// NewNetwork initializes the network and sets the local IP address
+// InitServer initializes the server and sets the local IP address
 func InitServer(kademlia *Node) Server {
 	server := Server{}
 	server.kademlia = kademlia
 	server.ip = server.GetLocalIP()
+	server.incoming = make(chan packet, 10)
+	server.outgoing = make(chan packet, 10)
 	return server
 }
 
@@ -69,7 +82,7 @@ func (server *Server) GetLocalIP() string {
 }
 
 // Listen listens on the given ip and port for incoming RPC requests.
-//If it fails to connect an error will be returned.
+// If it fails to connect an error will be returned.
 func (server *Server) Listen(port string) error {
 	portAsInt, _ := strconv.Atoi(port)
 	listenAddr := &net.UDPAddr{IP: net.ParseIP(server.ip), Port: portAsInt, Zone: ""}
@@ -81,20 +94,32 @@ func (server *Server) Listen(port string) error {
 	}
 	defer conn.Close()
 
-	err = server.handleUDP(conn)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
+	server.conn = conn
+
+	go func() {
+		for true {
+			server.handleOutgoingChannel()
+		}
+	}()
+
+	go func() {
+		for true {
+			server.readIncomingChannel()
+		}
+	}()
+
+	server.readUDP()
 
 	return nil
 }
 
-func (server *Server) handleUDP(conn *net.UDPConn) error {
+func (server *Server) readUDP() {
 	readBuffer := make([]byte, UDPReadBufferSize)
 
 	for {
-		bytesRead, receiveAddr, err := conn.ReadFromUDP(readBuffer)
+		bytesRead, receiveAddr, err := server.conn.ReadFromUDP(readBuffer)
+		senderIP := strings.Split(receiveAddr.String(), ":")[0]
+
 		if err != nil {
 			log.Warn(err)
 			continue
@@ -108,15 +133,29 @@ func (server *Server) handleUDP(conn *net.UDPConn) error {
 			continue
 		}
 
-		rpc, err = server.handleIncomingRPCS(rpc, strings.Split(receiveAddr.String(), ":")[0])
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
-		data, err := MarshalRPC(*rpc)
-
-		conn.WriteToUDP(data, receiveAddr)
+		packet := packet{rpc, senderIP, receiveAddr}
+		server.incoming <- packet
 	}
+}
+
+func (server *Server) readIncomingChannel() {
+	pkt := <-server.incoming
+	rpc, err := server.handleIncomingRPCS(pkt.rpc, pkt.ip)
+	if err != nil {
+		log.Warn(err)
+	}
+
+	fwdPkt := packet{rpc, pkt.ip, pkt.addr}
+	server.outgoing <- fwdPkt
+}
+
+func (server *Server) handleOutgoingChannel() {
+	packet := <-server.outgoing
+	data, err := MarshalRPC(*packet.rpc)
+	if err != nil {
+		log.Warn(err)
+	}
+	server.conn.WriteToUDP(data, packet.addr)
 }
 
 func (server *Server) handleIncomingRPCS(rpc *RPC, receiveAddr string) (*RPC, error) {
@@ -136,7 +175,6 @@ func (server *Server) handleIncomingRPCS(rpc *RPC, receiveAddr string) (*RPC, er
 	}
 
 	if err != nil {
-		log.Warn(err)
 		return nil, err
 	}
 
@@ -200,18 +238,15 @@ func (server *Server) handleIncomingFindNodeRPC(rpc *RPC) (*RPC, error) {
 func (server *Server) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
 	err := checkNilRPCPayload(rpc)
 	if err != nil {
-		log.Warn(err)
 		return nil, err
 	}
 
 	if rpc.TargetID == nil {
-		log.Warn(errNoTargetID)
 		return nil, errors.New(errNoTargetID)
 	}
 
 	key := rpc.Payload.Key
 	if key == nil {
-		log.Warn(errBadKeyValue)
 		return nil, errors.New(errBadKeyValue)
 	}
 
