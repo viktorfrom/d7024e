@@ -126,13 +126,14 @@ func (server *Server) readUDP() error {
 
 	readBuffer := make([]byte, UDPReadBufferSize)
 	bytesRead, receiveAddr, err := server.conn.ReadFromUDP(readBuffer)
-	senderIP := strings.Split(receiveAddr.String(), ":")[0]
 
 	if err != nil {
 		udpErr = err
 	} else if bytesRead == 0 {
 		udpErr = errors.New(errNoBytesRead)
 	}
+
+	senderIP := strings.Split(receiveAddr.String(), ":")[0]
 
 	rpc, err := UnmarshalRPC(readBuffer[0:bytesRead])
 	if err != nil {

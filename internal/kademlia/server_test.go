@@ -291,6 +291,7 @@ func TestHandleOutgoingChannel(t *testing.T) {
 	server := InitServer(&node)
 	addr, _ := net.ResolveUDPAddr(udpNetwork, "127.0.0.1:8080")
 	server.conn, _ = net.ListenUDP(udpNetwork, addr)
+	defer server.conn.Close()
 
 	rpc, _ := NewRPC(Ping, "00000000000000000000000000000000FFFFFFFF", "00000000000000000000000000000000FFFFFFFF", Payload{nil, nil, []Contact{}})
 	pkt := packet{rpc, "127.0.0.1", addr}
@@ -298,4 +299,30 @@ func TestHandleOutgoingChannel(t *testing.T) {
 
 	err := server.handleOutgoingChannel()
 	assert.Nil(t, err)
+}
+
+func TestReadUDPBadData(t *testing.T) {
+	node := Node{}
+	server := InitServer(&node)
+	addr, _ := net.ResolveUDPAddr(udpNetwork, "127.0.0.1:9090")
+	server.conn, _ = net.ListenUDP(udpNetwork, addr)
+	server.conn.WriteToUDP([]byte{1, 1, 1, 1}, addr)
+
+	err := server.readUDP()
+	defer server.conn.Close()
+
+	assert.Error(t, err)
+}
+
+func TestReadUDPNoData(t *testing.T) {
+	node := Node{}
+	server := InitServer(&node)
+	addr, _ := net.ResolveUDPAddr(udpNetwork, "127.0.0.1:9090")
+	server.conn, _ = net.ListenUDP(udpNetwork, addr)
+	server.conn.WriteToUDP([]byte{}, addr)
+
+	err := server.readUDP()
+	defer server.conn.Close()
+
+	assert.Error(t, err)
 }
