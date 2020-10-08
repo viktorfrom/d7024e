@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -19,7 +18,7 @@ const (
 var (
 	osExit   = os.Exit
 	logFatal = log.Fatal
-	helpFile = "prompt.txt"
+	helpFile = Prompt()
 )
 
 // Commands handles the commands of the CLI. `output` is the io.Writer to output data to.
@@ -86,8 +85,12 @@ func Ping(node kademlia.Node, input string) {
 }
 
 func Get(node kademlia.Node, hash string) {
-	value := node.FindValue(hash)
-	println("value = ", value)
+	if len(hash) == 40 {
+		value := node.FindValue(hash)
+		println("Value = ", value)
+	} else {
+		println("Invalid hash! Length needs to be 40 characters long.")
+	}
 }
 
 func Exit() {
@@ -95,12 +98,12 @@ func Exit() {
 }
 
 func Help(output io.Writer) {
-	content, err := ioutil.ReadFile(helpFile)
-	if err != nil {
-		logFatal(errNoFileFound + helpFile)
-	}
+	// content, err := ioutil.ReadFile(helpFile)
+	// if err != nil {
+	// 	logFatal(errNoFileFound + helpFile)
+	// }
 
 	// Convert []byte to string and print to screen
-	text := string(content)
+	text := Prompt()
 	fmt.Fprintln(output, text)
 }

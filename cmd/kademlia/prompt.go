@@ -1,3 +1,6 @@
+package main
+
+var test = `
 NAME:
    Kademlia CLI - An example prototype CLI for Kademlia instructions
 
@@ -16,3 +19,8 @@ COMMANDS:
    put, p       Appends node and content to network
    help, h      Show help
    version, v   Print the version
+`
+
+func Prompt() string {
+	return test
+}
