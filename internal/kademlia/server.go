@@ -15,6 +15,7 @@ const (
 	DefaultPort string = ":8080"
 	// UDPReadBufferSize Size of the UDP read buffer
 	UDPReadBufferSize int = 1024
+	ServerChannelSize int = 20
 )
 
 const (
@@ -30,6 +31,7 @@ const (
 	errInvalidRPCType string = "RPC type is invalid"
 	errNoContact      string = "no contact was given"
 	errNoTargetID     string = "no TargetID given"
+	errNoBytesRead    string = "no bytes read"
 	errNoID           string = "no ID given"
 	errBadKeyValue    string = "bad or no key or value given"
 	errNoRPCPayload   string = "no RPC payload given"
@@ -59,8 +61,8 @@ func InitServer(kademlia *Node) Server {
 	server := Server{}
 	server.kademlia = kademlia
 	server.ip = server.GetLocalIP()
-	server.incoming = make(chan packet, 10)
-	server.outgoing = make(chan packet, 10)
+	server.incoming = make(chan packet, ServerChannelSize)
+	server.outgoing = make(chan packet, ServerChannelSize)
 	return server
 }
 
@@ -98,7 +100,10 @@ func (server *Server) Listen(port string) error {
 
 	go func() {
 		for true {
-			server.handleOutgoingChannel()
+			err := server.handleOutgoingChannel()
+			if err != nil {
+				log.Warn(err)
+			}
 		}
 	}()
 
@@ -108,34 +113,36 @@ func (server *Server) Listen(port string) error {
 		}
 	}()
 
-	server.readUDP()
-
-	return nil
+	for {
+		err := server.readUDP()
+		if err != nil {
+			log.Warn(err)
+		}
+	}
 }
 
-func (server *Server) readUDP() {
+func (server *Server) readUDP() error {
+	var udpErr error = nil
+
 	readBuffer := make([]byte, UDPReadBufferSize)
+	bytesRead, receiveAddr, err := server.conn.ReadFromUDP(readBuffer)
+	senderIP := strings.Split(receiveAddr.String(), ":")[0]
 
-	for {
-		bytesRead, receiveAddr, err := server.conn.ReadFromUDP(readBuffer)
-		senderIP := strings.Split(receiveAddr.String(), ":")[0]
-
-		if err != nil {
-			log.Warn(err)
-			continue
-		} else if bytesRead == 0 {
-			continue
-		}
-
-		rpc, err := UnmarshalRPC(readBuffer[0:bytesRead])
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
-
-		packet := packet{rpc, senderIP, receiveAddr}
-		server.incoming <- packet
+	if err != nil {
+		udpErr = err
+	} else if bytesRead == 0 {
+		udpErr = errors.New(errNoBytesRead)
 	}
+
+	rpc, err := UnmarshalRPC(readBuffer[0:bytesRead])
+	if err != nil {
+		udpErr = err
+	}
+
+	packet := packet{rpc, senderIP, receiveAddr}
+	server.incoming <- packet
+
+	return udpErr
 }
 
 func (server *Server) readIncomingChannel() {
@@ -149,13 +156,19 @@ func (server *Server) readIncomingChannel() {
 	server.outgoing <- fwdPkt
 }
 
-func (server *Server) handleOutgoingChannel() {
+func (server *Server) handleOutgoingChannel() error {
 	packet := <-server.outgoing
 	data, err := MarshalRPC(*packet.rpc)
 	if err != nil {
-		log.Warn(err)
+		return err
 	}
-	server.conn.WriteToUDP(data, packet.addr)
+
+	_, err = server.conn.WriteToUDP(data, packet.addr)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (server *Server) handleIncomingRPCS(rpc *RPC, receiveAddr string) (*RPC, error) {
@@ -171,7 +184,7 @@ func (server *Server) handleIncomingRPCS(rpc *RPC, receiveAddr string) (*RPC, er
 	case FindValue:
 		retRPC, err = server.handleIncomingFindValueRPC(rpc)
 	default:
-		return rpc, errors.New(errInvalidRPCType)
+		err = errors.New(errInvalidRPCType)
 	}
 
 	if err != nil {
