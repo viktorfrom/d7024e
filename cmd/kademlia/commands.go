@@ -86,8 +86,12 @@ func Ping(node kademlia.Node, input string) {
 }
 
 func Get(node kademlia.Node, hash string) {
-	value := node.FindValue(hash)
-	println("value = ", value)
+	if len(hash) == 40 {
+		value := node.FindValue(hash)
+		println("Value = ", value)
+	} else {
+		println("Invalid hash! Length needs to be 40 characters long.")
+	}
 }
 
 func Exit() {

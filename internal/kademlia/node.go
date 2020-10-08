@@ -136,7 +136,7 @@ func (kademlia *Node) FindValue(hash string) string {
 				} else {
 					rpc, err := kademlia.network.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
 
-					if *rpc.Payload.Value != "" {
+					if rpc.Payload.Value != nil && *rpc.Payload.Value != "" {
 						return *rpc.Payload.Value
 					}
 
