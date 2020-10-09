@@ -6,6 +6,7 @@ import (
 	"os"
 
 	cli "github.com/viktorfrom/d7024e-kademlia/cmd"
+	"github.com/viktorfrom/d7024e-kademlia/cmd/api"
 	"github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
@@ -17,5 +18,6 @@ func main() {
 	node := kademlia.Node{}
 	node.InitNode()
 
+	go api.API(out, node)
 	cli.Cli(out, node)
 }

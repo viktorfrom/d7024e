@@ -3,6 +3,7 @@ package kademlia
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"math/rand"
 	"time"
 
@@ -114,9 +115,9 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 }
 
 //FindValue - finds a value stored in the kademlia network
-func (kademlia *Node) FindValue(hash string) string {
+func (kademlia *Node) FindValue(hash string) (string, error) {
 	if content, ok := kademlia.content[hash]; ok {
-		return content
+		return content, nil
 
 	} else {
 		alpha := 1
@@ -141,7 +142,7 @@ func (kademlia *Node) FindValue(hash string) string {
 					rpc, err := kademlia.client.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
 
 					if rpc.Payload.Value != nil && *rpc.Payload.Value != "" {
-						return *rpc.Payload.Value
+						return *rpc.Payload.Value, nil
 					}
 
 					// if a node responds with an error remove that node
@@ -169,7 +170,7 @@ func (kademlia *Node) FindValue(hash string) string {
 
 			}
 		}
-		return "No value found!"
+		return "", errors.New("no value found")
 	}
 }
 
