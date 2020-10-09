@@ -43,7 +43,7 @@ func (logger *Logger) Info(args ...interface{}) {
 }
 
 // Warning log warning level information
-func (logger *Logger) Warning(args ...interface{}) {
+func (logger *Logger) Warn(args ...interface{}) {
 	logger.logger.Warning(args...)
 }
 
