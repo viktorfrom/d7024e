@@ -220,11 +220,9 @@ func (kademlia *Node) appendUniqueContacts(rpc *RPC,
 
 // StoreValue takes some data, hashes it with SHA1 and finds the k closest
 // nodes to that hash, then sends a store RPC to those k nodes
-func (kademlia *Node) StoreValue(data string) {
+func (kademlia *Node) StoreValue(data string) string {
 	sha1 := sha1.Sum([]byte(data))
 	key := hex.EncodeToString(sha1[:])
-
-	println("key = ", key)
 
 	// find the K closest nodes to the hashed value in the whole Kademlia network
 	targetID := NewNodeID(key)
@@ -243,6 +241,8 @@ func (kademlia *Node) StoreValue(data string) {
 			kademlia.updateBucket(*bucket, node)
 		}
 	}
+
+	return key
 }
 
 // Ping sends a ping message to a target node
