@@ -19,7 +19,10 @@ type Node struct {
 // InitNode initializes the Kademlia Node
 // with a Routing Table and a Network
 func (kademlia *Node) InitNode() {
-	kademlia.client = InitClient()
+	client := InitClient()
+	client.Start()
+	kademlia.client = client
+
 	ip := kademlia.client.ip
 
 	var id *NodeID

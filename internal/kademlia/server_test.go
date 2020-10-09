@@ -16,14 +16,6 @@ func TestNewNetwork(t *testing.T) {
 	assert.Equal(t, node, *network.kademlia)
 }
 
-func TestGetLocalIp(t *testing.T) {
-	node := Node{}
-	network := InitServer(&node)
-	assert.NotNil(t, network.ip)
-	assert.NotEqual(t, "", network.GetLocalIP())
-	assert.Equal(t, network.ip, network.GetLocalIP())
-}
-
 func TestUpdateRoutingTable(t *testing.T) {
 	pingMsg := pingMsg
 	payload := Payload{&pingMsg, nil, nil}

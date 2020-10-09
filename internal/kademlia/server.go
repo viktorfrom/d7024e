@@ -5,7 +5,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -36,9 +35,6 @@ const (
 	errBadKeyValue    string = "bad or no key or value given"
 	errNoRPCPayload   string = "no RPC payload given"
 )
-
-// the time before a RPC call times out
-var timeout = 10 * time.Second
 
 type packet struct {
 	rpc  *RPC
@@ -272,4 +268,15 @@ func (server *Server) handleIncomingFindValueRPC(rpc *RPC) (*RPC, error) {
 
 	rpc.Payload.Value = value
 	return rpc, nil
+}
+
+func checkNilRPCPayload(rpc *RPC) error {
+	if rpc == nil {
+		return errors.New(errNilRPC)
+	}
+
+	if rpc.Payload == nil {
+		return errors.New(errNoRPCPayload)
+	}
+	return nil
 }
