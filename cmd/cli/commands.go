@@ -78,7 +78,8 @@ func Commands(output io.Writer, node *kademlia.Node, commands []string) {
 }
 
 func Put(node kademlia.Node, input string) {
-	node.StoreValue(input)
+	hash := node.StoreValue(input)
+	println("Hash = ", hash)
 }
 
 func Ping(node kademlia.Node, input string) {
@@ -86,8 +87,13 @@ func Ping(node kademlia.Node, input string) {
 }
 
 func Get(node kademlia.Node, hash string) {
-	value := node.FindValue(hash)
-	println("value = ", value)
+	value, err := node.FindValue(hash)
+
+	if err != nil {
+		println(err.Error())
+	} else {
+		println("value = ", value)
+	}
 }
 
 func Exit() {

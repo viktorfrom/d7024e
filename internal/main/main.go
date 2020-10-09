@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	cli "github.com/viktorfrom/d7024e-kademlia/cmd"
 	"github.com/viktorfrom/d7024e-kademlia/cmd/api"
+	"github.com/viktorfrom/d7024e-kademlia/cmd/cli"
 	"github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
