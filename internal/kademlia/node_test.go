@@ -7,7 +7,7 @@ import (
 )
 
 func TestSearchLocalStore(t *testing.T) {
-	node := Node{nil, Network{nil, ""}, make(map[string]string)}
+	node := Node{nil, Client{}, make(map[string]string)}
 	node.insertLocalStore("hello", "there")
 
 	c := node.searchLocalStore("hello")
