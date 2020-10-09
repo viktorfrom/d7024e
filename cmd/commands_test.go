@@ -1,8 +1,9 @@
-package main
+package cli
 
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -10,13 +11,33 @@ import (
 )
 
 func TestHelp(t *testing.T) {
-	content := Prompt()
-	assert.Equal(t, cmdTester("help"), content)
+	content, _ := ioutil.ReadFile("prompt.txt")
+	assert.Equal(t, cmdTester("help"), string(content))
 }
 
 func TestHelpShort(t *testing.T) {
-	content := Prompt()
-	assert.Equal(t, cmdTester("h"), content)
+	content, _ := ioutil.ReadFile("prompt.txt")
+	assert.Equal(t, cmdTester("h"), string(content))
+}
+
+func TestHelpError(t *testing.T) {
+	helpFile = "error.txt"
+	out = bytes.NewBuffer(nil)
+
+	// Save current function and restore at the end:
+	oldLogFatal := logFatal
+	defer func() { logFatal = oldLogFatal }()
+
+	var gotV []interface{}
+	myFatal := func(v ...interface{}) {
+		gotV = v
+	}
+
+	logFatal = myFatal
+	Help(out)
+	expV := []interface{}{errNoFileFound + helpFile}
+
+	assert.Equal(t, expV, gotV)
 }
 
 func cmdTester(cmd string) string {

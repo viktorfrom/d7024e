@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"bufio"
@@ -11,6 +11,7 @@ import (
 )
 
 var in *os.File = os.Stdin
+var out io.Writer = os.Stdout
 
 // Cli starts the program for the given node and outputs data to the given
 // io.writer
