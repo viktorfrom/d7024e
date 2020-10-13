@@ -39,12 +39,6 @@ func Commands(output io.Writer, node *kademlia.Node, commands []string) {
 		} else {
 			fmt.Fprintln(output, errNoArg)
 		}
-	case "ping":
-		if len(commands) == 2 {
-			Ping(*node, commands[1])
-		} else {
-			fmt.Fprintln(output, errNoArg)
-		}
 	case "get":
 		if len(commands) == 2 {
 			Get(*node, commands[1])
@@ -57,11 +51,6 @@ func Commands(output io.Writer, node *kademlia.Node, commands []string) {
 		} else {
 			fmt.Fprintln(output, errNoArg)
 		}
-	case "t":
-		//c := kademlia.NewContact(kademlia.NewRandomNodeID(), "10.0.8.9")
-		c := kademlia.NewContact(kademlia.NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.3:8080")
-		c.CalcDistance(node.RT.GetMeID())
-		fmt.Fprintln(output, node.NodeLookup(c.ID))
 	case "info":
 		fmt.Println("ID: ", node.RT.GetMeID())
 	case "exit":
@@ -80,10 +69,6 @@ func Commands(output io.Writer, node *kademlia.Node, commands []string) {
 func Put(node kademlia.Node, input string) {
 	hash := node.StoreValue(input)
 	println("Hash = ", hash)
-}
-
-func Ping(node kademlia.Node, input string) {
-	// node.Ping()
 }
 
 func Get(node kademlia.Node, hash string) {

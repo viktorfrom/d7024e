@@ -95,7 +95,3 @@ func TestGet(t *testing.T) {
 func TestGetShort(t *testing.T) {
 	assert.Equal(t, errNoArg, cmdTester("g"))
 }
-
-func TestPing(t *testing.T) {
-	assert.Equal(t, errNoArg, cmdTester("ping"))
-}
