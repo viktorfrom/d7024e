@@ -23,7 +23,7 @@ const (
 var (
 	osExit   = os.Exit
 	logFatal = log.Fatal
-	helpFile = "prompt.txt"
+	helpFile = Prompt()
 )
 
 type Body struct {
@@ -39,7 +39,7 @@ var in *os.File = os.Stdin
 var out io.Writer = os.Stdout
 
 func main() {
-	fmt.Fprintln(out, "Starting CLI...")
+	fmt.Fprintln(out, "Starting Client CLI...")
 	reader := bufio.NewReader(in)
 
 	for {
@@ -154,12 +154,6 @@ func Exit() {
 }
 
 func Help(output io.Writer) {
-	content, err := ioutil.ReadFile(helpFile)
-	if err != nil {
-		logFatal(errNoFileFound + helpFile)
-	}
-
-	// Convert []byte to string and print to screen
-	text := string(content)
+	text := Prompt()
 	fmt.Fprintln(output, text)
 }
