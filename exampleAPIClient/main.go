@@ -63,57 +63,25 @@ func Commands(output io.Writer, commands []string) {
 	switch commands[0] {
 	case "put":
 		if len(commands) == 3 {
-			status, location, value, err := Put(commands[1], commands[2], http.Post)
-
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				fmt.Println(status)
-				fmt.Println(location)
-				fmt.Println(value)
-			}
+			Put(commands[1], commands[2], http.Post)
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
 	case "p":
 		if len(commands) == 3 {
-			status, location, value, err := Put(commands[1], commands[2], http.Post)
-
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				fmt.Println(status)
-				fmt.Println(location)
-				fmt.Println(value)
-			}
+			Put(commands[1], commands[2], http.Post)
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
 	case "get":
 		if len(commands) == 3 {
-			status, location, value, err := Get(commands[1], commands[2], http.Get)
-
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				fmt.Println(status)
-				fmt.Println(location)
-				fmt.Println(value)
-			}
+			Get(commands[1], commands[2], http.Get)
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
 	case "g":
 		if len(commands) == 3 {
-			status, location, value, err := Get(commands[1], commands[2], http.Get)
-
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				fmt.Println(status)
-				fmt.Println(location)
-				fmt.Println(value)
-			}
+			Get(commands[1], commands[2], http.Get)
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
@@ -146,6 +114,13 @@ func Put(ip, value string, post func(ip, contentType string, buffer io.Reader) (
 
 	data := Response{}
 	err = json.Unmarshal(body, &data)
+	if err != nil {
+		fmt.Fprintln(out, err)
+	} else {
+		fmt.Fprintln(out, resp.Status)
+		fmt.Fprintln(out, data.Location)
+		fmt.Fprintln(out, data.Value)
+	}
 	return resp.Status, data.Location, data.Value, err
 }
 
@@ -165,6 +140,13 @@ func Get(ip, hash string, get func(url string) (*http.Response, error)) (string,
 	data := Response{}
 
 	err = json.Unmarshal(body, &data)
+	if err != nil {
+		fmt.Fprintln(out, err)
+	} else {
+		fmt.Fprintln(out, resp.Status)
+		fmt.Fprintln(out, data.Location)
+		fmt.Fprintln(out, data.Value)
+	}
 	return resp.Status, data.Location, data.Value, err
 }
 
