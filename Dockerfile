@@ -16,7 +16,6 @@ RUN mkdir /app
 ADD . /app/
 WORKDIR /app 
 RUN go build -o kademlia cmd/main/*.go
-RUN go build -o apiclient cmd/client/*.go
 RUN adduser -S -D -H -h /app appuser
 USER appuser
 CMD ["./kademlia"]
