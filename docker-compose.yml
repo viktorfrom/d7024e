@@ -40,7 +40,8 @@ services:
         max_attempts: 3
         window: 10s
     networks:
-      - kademlia_network
+      kademlia_network:
+          ipv4_address: 10.0.8.55
 networks:
   kademlia_network:
     ipam:

@@ -115,17 +115,16 @@ func Put(ip, value string, post func(ip, contentType string, buffer io.Reader) (
 	data := Response{}
 	err = json.Unmarshal(body, &data)
 	if err != nil {
-		fmt.Fprintln(out, err)
+		fmt.Fprintln(out, "ERROR:", err)
 	} else {
-		fmt.Fprintln(out, resp.Status)
-		fmt.Fprintln(out, data.Location)
-		fmt.Fprintln(out, data.Value)
+		fmt.Fprintln(out, "Status:", resp.Status)
+		fmt.Fprintln(out, "Location:", data.Location)
+		fmt.Fprintln(out, "Value:", data.Value)
 	}
 	return resp.Status, data.Location, data.Value, err
 }
 
 func Get(ip, hash string, get func(url string) (*http.Response, error)) (string, string, string, error) {
-	fmt.Println(ip)
 	resp, err := get("http://" + ip + ":3000/objects/" + hash)
 	if err != nil {
 		return "500", "", "", err
@@ -141,11 +140,11 @@ func Get(ip, hash string, get func(url string) (*http.Response, error)) (string,
 
 	err = json.Unmarshal(body, &data)
 	if err != nil {
-		fmt.Fprintln(out, err)
+		fmt.Fprintln(out, "ERROR:", err)
 	} else {
-		fmt.Fprintln(out, resp.Status)
-		fmt.Fprintln(out, data.Location)
-		fmt.Fprintln(out, data.Value)
+		fmt.Fprintln(out, "Status:", resp.Status)
+		fmt.Fprintln(out, "Location:", data.Location)
+		fmt.Fprintln(out, "Value:", data.Value)
 	}
 	return resp.Status, data.Location, data.Value, err
 }
