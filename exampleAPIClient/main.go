@@ -38,8 +38,6 @@ type Response struct {
 var in *os.File = os.Stdin
 var out io.Writer = os.Stdout
 
-// Cli starts the program for the given node and outputs data to the given
-// io.writer
 func main() {
 	fmt.Fprintln(out, "Starting CLI...")
 	reader := bufio.NewReader(in)
@@ -62,29 +60,60 @@ func main() {
 // Commands handles the commands of the CLI. `output` is the io.Writer to output data to.
 // `node` is the Kademlia node this CLI runs for. `commands` a list of program commands.
 func Commands(output io.Writer, commands []string) {
-
 	switch commands[0] {
 	case "put":
 		if len(commands) == 3 {
-			Put(commands[1], commands[2])
+			status, location, value, err := Put(commands[1], commands[2], http.Post)
+
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(status)
+				fmt.Println(location)
+				fmt.Println(value)
+			}
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
 	case "p":
 		if len(commands) == 3 {
-			Put(commands[1], commands[2])
+			status, location, value, err := Put(commands[1], commands[2], http.Post)
+
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(status)
+				fmt.Println(location)
+				fmt.Println(value)
+			}
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
 	case "get":
 		if len(commands) == 3 {
-			Get(commands[1], commands[2])
+			status, location, value, err := Get(commands[1], commands[2], http.Get)
+
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(status)
+				fmt.Println(location)
+				fmt.Println(value)
+			}
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
 	case "g":
 		if len(commands) == 3 {
-			Get(commands[1], commands[2])
+			status, location, value, err := Get(commands[1], commands[2], http.Get)
+
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(status)
+				fmt.Println(location)
+				fmt.Println(value)
+			}
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
@@ -101,57 +130,42 @@ func Commands(output io.Writer, commands []string) {
 	}
 }
 
-func Put(ip, value string) {
-	b := Body{value}
-	body, err := json.Marshal(b)
+func Put(ip, value string, post func(ip, contentType string, buffer io.Reader) (*http.Response, error)) (string, string, string, error) {
+	body, err := json.Marshal(Body{value})
 	if err != nil {
-		fmt.Println("err", err)
-	} else {
-
-		resp, err := http.Post("http://"+ip+":3000/objects", "application/json", bytes.NewBuffer(body))
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Println("Response Status:", resp.Status)
-
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				body, err := ioutil.ReadAll(resp.Body)
-
-				if err != nil {
-					fmt.Println(err)
-				}
-				defer resp.Body.Close()
-
-				data := Response{}
-				err = json.Unmarshal(body, &data)
-				fmt.Println("Location:", data.Location)
-				fmt.Println("Value:", data.Value)
-			}
-		}
+		return "500", "", "", err
 	}
+	resp, err := post("http://"+ip+":3000/objects", "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		return "500", "", "", err
+	}
+
+	body, err = ioutil.ReadAll(resp.Body)
+
+	defer resp.Body.Close()
+
+	data := Response{}
+	err = json.Unmarshal(body, &data)
+	return resp.Status, data.Location, data.Value, err
 }
 
-func Get(ip, hash string) {
-	resp, err := http.Get("http://" + ip + ":3000/objects/" + hash)
-
+func Get(ip, hash string, get func(url string) (*http.Response, error)) (string, string, string, error) {
+	fmt.Println(ip)
+	resp, err := get("http://" + ip + ":3000/objects/" + hash)
 	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println("Response Status:", resp.Status)
-
-		body, err := ioutil.ReadAll((*resp).Body)
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer resp.Body.Close()
-
-		data := Response{}
-		err = json.Unmarshal(body, &data)
-		fmt.Println("Location:", data.Location)
-		fmt.Println("Value:", data.Value)
+		return "500", "", "", err
 	}
+
+	body, err := ioutil.ReadAll((*resp).Body)
+	if err != nil {
+		return "500", "", "", err
+	}
+	defer resp.Body.Close()
+
+	data := Response{}
+
+	err = json.Unmarshal(body, &data)
+	return resp.Status, data.Location, data.Value, err
 }
 
 func Exit() {
