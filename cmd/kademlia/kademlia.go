@@ -15,5 +15,9 @@ func main() {
 
 	node := kademlia.Node{}
 	node.InitNode()
+
+	server := kademlia.InitServer(&node)
+	go server.Listen("8080")
+
 	Cli(out, node)
 }

@@ -37,7 +37,7 @@ func TestLogInfo(t *testing.T) {
 func TestLogWarning(t *testing.T) {
 	filename := "warning.log"
 	logger := New(log.WarnLevel, &filename, false)
-	logger.Warning("warning text here")
+	logger.Warn("warning text here")
 
 	file, err := os.Stat(filename)
 	assert.NoError(t, err)
