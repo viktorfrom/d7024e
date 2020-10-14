@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -17,6 +18,11 @@ import (
 var respValue string
 var respKey string
 var respErr error
+
+var (
+	mux    *http.ServeMux
+	server *httptest.Server
+)
 
 func TestHelp(t *testing.T) {
 	content := Prompt()
@@ -83,74 +89,102 @@ func TestGetShortCommand(t *testing.T) {
 	assert.Equal(t, errWrongArg, cmdTester("g"))
 }
 
-func TestPutCreated(t *testing.T) {
-	status, loc, value, err := Put("localhost", "test", PostCreated)
+func TestGetAPIUrl(t *testing.T) {
+	assert.Equal(t, "http://10.0.8.4:3000", GetAPIUrl("10.0.8.4"))
+}
+
+func TestPut201(t *testing.T) {
+	server, teardown := setupTestServer()
+	defer teardown()
+
+	mux.HandleFunc("/objects", func(w http.ResponseWriter, r *http.Request) {
+		b, _ := ioutil.ReadAll(r.Body)
+		body := Body{}
+		json.Unmarshal(b, &body)
+
+		sha1 := sha1.Sum([]byte(body.Value))
+		key := hex.EncodeToString(sha1[:])
+		res := Response{"/objects/" + key, body.Value}
+
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(res)
+	})
+
+	status, loc, value, err := Put(server.URL, "test")
 	assert.Equal(t, "201 Created", status)
 	assert.Equal(t, "/objects/a94a8fe5ccb19ba61c4c0873d391e987982fbbd3", loc)
 	assert.Equal(t, "test", value)
 	assert.Nil(t, err)
 }
 
-// func TestGetBadRequest(t *testing.T) {
-// 	status, loc, value, err := Get("localhost", "test")
-// 	assert.Equal(t, "400 Bad Request", status)
-// 	assert.Equal(t, "", loc)
-// 	assert.Equal(t, "", value)
-// 	assert.Error(t, err)
-// }
+func TestPut500(t *testing.T) {
+	server, teardown := setupTestServer()
+	defer teardown()
 
-func TestGet(t *testing.T) {
-	respValue = "test"
-	status, loc, value, err := Get("localhost", "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3", GetExisting)
+	mux.HandleFunc("/objects", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	status, loc, value, err := Put(server.URL, "test")
+	assert.Equal(t, "500 Internal Server Error", status)
+	assert.Equal(t, "", loc)
+	assert.Equal(t, "", value)
+	assert.Error(t, err)
+}
+
+func TestGet200(t *testing.T) {
+	server, teardown := setupTestServer()
+	defer teardown()
+
+	mux.HandleFunc("/objects/a94a8fe5ccb19ba61c4c0873d391e987982fbbd3", func(w http.ResponseWriter, r *http.Request) {
+		hash := strings.Split(r.URL.Path, "/")[2]
+		res := Response{"/objects/" + hash, "test"}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(res)
+	})
+
+	status, loc, value, err := Get(server.URL, "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3")
 	assert.Equal(t, "200 OK", status)
 	assert.Equal(t, "/objects/a94a8fe5ccb19ba61c4c0873d391e987982fbbd3", loc)
 	assert.Equal(t, "test", value)
 	assert.Nil(t, err)
 }
 
-func TestGetNonExisting(t *testing.T) {
-	respValue = "test"
-	status, loc, value, err := Get("localhost", "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3", GetNonexisting)
-	assert.Equal(t, "404 NotFound", status)
+func TestGet400(t *testing.T) {
+	server, teardown := setupTestServer()
+	defer teardown()
+
+	mux.HandleFunc("/objects/a94a8fe5ccb19ba61c4c0873d391e987982fbbd", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	})
+
+	status, loc, value, err := Get(server.URL, "a94a8fe5ccb19ba61c4c0873d391e987982fbbd")
+	assert.Equal(t, "400", status)
 	assert.Equal(t, "", loc)
 	assert.Equal(t, "", value)
-	assert.Nil(t, err)
+	assert.Error(t, err)
+}
+func TestGet404(t *testing.T) {
+	server, teardown := setupTestServer()
+	defer teardown()
+
+	mux.HandleFunc("/objects/a94a8fe5ccb19ba61c4c0873d391e987982fbbd3", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	status, loc, value, err := Get(server.URL, "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3")
+	assert.Equal(t, "404", status)
+	assert.Equal(t, "", loc)
+	assert.Equal(t, "", value)
+	assert.Error(t, err)
 }
 
-func PostCreated(ip, contentType string, buffer io.Reader) (*http.Response, error) {
-	b, _ := ioutil.ReadAll(buffer)
+func setupTestServer() (*httptest.Server, func()) {
+	mux = http.NewServeMux()
+	server = httptest.NewServer(mux)
 
-	body := Body{}
-	_ = json.Unmarshal(b, &body)
-
-	sha1 := sha1.Sum([]byte(body.Value))
-	key := hex.EncodeToString(sha1[:])
-	res := Response{"/objects/" + key, body.Value}
-
-	s, _ := json.Marshal(res)
-	r := ioutil.NopCloser(bytes.NewBuffer(s)) // r type is io.ReadCloser
-	resp := http.Response{Status: "201 Created", StatusCode: 201, Proto: "", ProtoMajor: 1, ProtoMinor: 0, Header: nil, Body: r, ContentLength: 1024, TransferEncoding: []string{}, Uncompressed: true, Close: true, Trailer: nil, Request: nil, TLS: nil}
-
-	return &resp, nil
-}
-
-func GetExisting(ip string) (*http.Response, error) {
-	hash := strings.Split(ip, "/")[4]
-	res := Response{"/objects/" + hash, respValue}
-
-	s, _ := json.Marshal(res)
-	r := ioutil.NopCloser(bytes.NewBuffer(s)) // r type is io.ReadCloser
-	resp := http.Response{Status: "200 OK", StatusCode: 200, Proto: "", ProtoMajor: 1, ProtoMinor: 0, Header: nil, Body: r, ContentLength: 1024, TransferEncoding: []string{}, Uncompressed: true, Close: true, Trailer: nil, Request: nil, TLS: nil}
-
-	return &resp, nil
-}
-
-func GetNonexisting(ip string) (*http.Response, error) {
-	res := Response{}
-
-	s, _ := json.Marshal(res)
-	r := ioutil.NopCloser(bytes.NewBuffer(s)) // r type is io.ReadCloser
-	resp := http.Response{Status: "404 NotFound", StatusCode: 404, Proto: "", ProtoMajor: 1, ProtoMinor: 0, Header: nil, Body: r, ContentLength: 1024, TransferEncoding: []string{}, Uncompressed: true, Close: true, Trailer: nil, Request: nil, TLS: nil}
-
-	return &resp, nil
+	teardown := func() {
+		server.Close()
+	}
+	return server, teardown
 }

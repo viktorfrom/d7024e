@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -63,25 +65,25 @@ func Commands(output io.Writer, commands []string) {
 	switch commands[0] {
 	case "put":
 		if len(commands) == 3 {
-			Put(commands[1], commands[2], http.Post)
+			Put(GetAPIUrl(commands[1]), commands[2])
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
 	case "p":
 		if len(commands) == 3 {
-			Put(commands[1], commands[2], http.Post)
+			Put(GetAPIUrl(commands[1]), commands[2])
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
 	case "get":
 		if len(commands) == 3 {
-			Get(commands[1], commands[2], http.Get)
+			Get(GetAPIUrl(commands[1]), commands[2])
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
 	case "g":
 		if len(commands) == 3 {
-			Get(commands[1], commands[2], http.Get)
+			Get(GetAPIUrl(commands[1]), commands[2])
 		} else {
 			fmt.Fprintln(output, errWrongArg)
 		}
@@ -98,12 +100,12 @@ func Commands(output io.Writer, commands []string) {
 	}
 }
 
-func Put(ip, value string, post func(ip, contentType string, buffer io.Reader) (*http.Response, error)) (string, string, string, error) {
+func Put(url, value string) (string, string, string, error) {
 	body, err := json.Marshal(Body{value})
 	if err != nil {
 		return "500", "", "", err
 	}
-	resp, err := post("http://"+ip+":3000/objects", "application/json", bytes.NewBuffer(body))
+	resp, err := http.Post(url+"/objects", "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return "500", "", "", err
 	}
@@ -124,10 +126,15 @@ func Put(ip, value string, post func(ip, contentType string, buffer io.Reader) (
 	return resp.Status, data.Location, data.Value, err
 }
 
-func Get(ip, hash string, get func(url string) (*http.Response, error)) (string, string, string, error) {
-	resp, err := get("http://" + ip + ":3000/objects/" + hash)
+func Get(url, hash string) (string, string, string, error) {
+
+	resp, err := http.Get(url + "/objects/" + hash)
 	if err != nil {
 		return "500", "", "", err
+	}
+
+	if resp.StatusCode != 200 {
+		return strconv.Itoa(resp.StatusCode), "", "", errors.New(resp.Status)
 	}
 
 	body, err := ioutil.ReadAll((*resp).Body)
@@ -147,6 +154,10 @@ func Get(ip, hash string, get func(url string) (*http.Response, error)) (string,
 		fmt.Fprintln(out, "Value:", data.Value)
 	}
 	return resp.Status, data.Location, data.Value, err
+}
+
+func GetAPIUrl(ip string) string {
+	return "http://" + ip + ":3000"
 }
 
 func Exit() {
