@@ -23,21 +23,9 @@ docker 1:19.03.12-2
 ```
 
 
-## Build instructions
-Build the docker image named kadlab
-```
-docker build . -t kadlab
-```
-## Deploy
-To deploy to a stack using the docker-compose config. This will spin up replicas of the kadlab Docker Image
-```
-docker stack deploy --compose-file docker-compose.yml kadlab
-```
+## Build and Deploy
+To build and deploy the Kademlia network run `scripts/deploy.sh`.
 
-When deploying again after an update of the Kadlab image the current stack needs to be removed
-```
-docker stack rm
-```
 
 ## While Running
 List the different replica services
@@ -55,6 +43,8 @@ Attach to a running container
 docker attach "ContainerId"
 ```
 
+## Test
+To run the unit tests run `scripts/testcoverage.sh`.
 
 ## Authors
 * Viktor From - vikfro-6@student.ltu.se - [viktorfrom](https://github.com/viktorfrom)

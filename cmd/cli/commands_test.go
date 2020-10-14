@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"bytes"
@@ -11,12 +11,12 @@ import (
 
 func TestHelp(t *testing.T) {
 	content := Prompt()
-	assert.Equal(t, cmdTester("help"), content)
+	assert.Equal(t, content, cmdTester("help"))
 }
 
 func TestHelpShort(t *testing.T) {
 	content := Prompt()
-	assert.Equal(t, cmdTester("h"), content)
+	assert.Equal(t, content, cmdTester("h"))
 }
 
 func cmdTester(cmd string) string {
@@ -73,8 +73,4 @@ func TestGet(t *testing.T) {
 
 func TestGetShort(t *testing.T) {
 	assert.Equal(t, errNoArg, cmdTester("g"))
-}
-
-func TestPing(t *testing.T) {
-	assert.Equal(t, errNoArg, cmdTester("ping"))
 }

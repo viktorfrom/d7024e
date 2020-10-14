@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -38,12 +38,6 @@ func Commands(output io.Writer, node *kademlia.Node, commands []string) {
 		} else {
 			fmt.Fprintln(output, errNoArg)
 		}
-	case "ping":
-		if len(commands) == 2 {
-			Ping(*node, commands[1])
-		} else {
-			fmt.Fprintln(output, errNoArg)
-		}
 	case "get":
 		if len(commands) == 2 {
 			Get(*node, commands[1])
@@ -56,11 +50,6 @@ func Commands(output io.Writer, node *kademlia.Node, commands []string) {
 		} else {
 			fmt.Fprintln(output, errNoArg)
 		}
-	case "t":
-		//c := kademlia.NewContact(kademlia.NewRandomNodeID(), "10.0.8.9")
-		c := kademlia.NewContact(kademlia.NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.3:8080")
-		c.CalcDistance(node.RT.GetMeID())
-		fmt.Fprintln(output, node.NodeLookup(c.ID))
 	case "info":
 		fmt.Println("ID: ", node.RT.GetMeID())
 	case "exit":
@@ -77,19 +66,17 @@ func Commands(output io.Writer, node *kademlia.Node, commands []string) {
 }
 
 func Put(node kademlia.Node, input string) {
-	node.StoreValue(input)
-}
-
-func Ping(node kademlia.Node, input string) {
-	// node.Ping()
+	hash := node.StoreValue(input)
+	println("Hash = ", hash)
 }
 
 func Get(node kademlia.Node, hash string) {
-	if len(hash) == 40 {
-		value := node.FindValue(hash)
-		println("Value = ", value)
+	value, err := node.FindValue(hash)
+
+	if err != nil {
+		println(err.Error())
 	} else {
-		println("Invalid hash! Length needs to be 40 characters long.")
+		println("value = ", value)
 	}
 }
 
@@ -98,12 +85,6 @@ func Exit() {
 }
 
 func Help(output io.Writer) {
-	// content, err := ioutil.ReadFile(helpFile)
-	// if err != nil {
-	// 	logFatal(errNoFileFound + helpFile)
-	// }
-
-	// Convert []byte to string and print to screen
 	text := Prompt()
 	fmt.Fprintln(output, text)
 }

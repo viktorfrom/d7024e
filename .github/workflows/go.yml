@@ -31,7 +31,10 @@ jobs:
         fi
 
     - name: Build kademlia
-      run: go build -v cmd/kademlia/*.go 
+      run: go build -o kademlia cmd/main/*.go
+
+    - name: Build API Client
+      run: go build -o apiclient cmd/client/*.go
 
     - name: Unit Tests
       run: go test -v ./...

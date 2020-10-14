@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/viktorfrom/d7024e-kademlia/cmd/api"
+	"github.com/viktorfrom/d7024e-kademlia/cmd/cli"
 	"github.com/viktorfrom/d7024e-kademlia/internal/kademlia"
 )
 
@@ -18,6 +20,7 @@ func main() {
 
 	server := kademlia.InitServer(&node)
 	go server.Listen("8080")
+	go api.API(out, node)
 
-	Cli(out, node)
+	cli.Cli(out, node)
 }

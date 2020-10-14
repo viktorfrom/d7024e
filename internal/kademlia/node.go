@@ -3,6 +3,7 @@ package kademlia
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"math/rand"
 	"time"
 
@@ -114,9 +115,9 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 }
 
 //FindValue - finds a value stored in the kademlia network
-func (kademlia *Node) FindValue(hash string) string {
+func (kademlia *Node) FindValue(hash string) (string, error) {
 	if content, ok := kademlia.content[hash]; ok {
-		return content
+		return content, nil
 
 	} else {
 		alpha := 1
@@ -141,7 +142,7 @@ func (kademlia *Node) FindValue(hash string) string {
 					rpc, err := kademlia.client.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
 
 					if rpc.Payload.Value != nil && *rpc.Payload.Value != "" {
-						return *rpc.Payload.Value
+						return *rpc.Payload.Value, nil
 					}
 
 					// if a node responds with an error remove that node
@@ -169,7 +170,7 @@ func (kademlia *Node) FindValue(hash string) string {
 
 			}
 		}
-		return "No value found!"
+		return "", errors.New("no value found")
 	}
 }
 
@@ -219,11 +220,9 @@ func (kademlia *Node) appendUniqueContacts(rpc *RPC,
 
 // StoreValue takes some data, hashes it with SHA1 and finds the k closest
 // nodes to that hash, then sends a store RPC to those k nodes
-func (kademlia *Node) StoreValue(data string) {
+func (kademlia *Node) StoreValue(data string) string {
 	sha1 := sha1.Sum([]byte(data))
 	key := hex.EncodeToString(sha1[:])
-
-	println("key = ", key)
 
 	// find the K closest nodes to the hashed value in the whole Kademlia network
 	targetID := NewNodeID(key)
@@ -242,6 +241,8 @@ func (kademlia *Node) StoreValue(data string) {
 			kademlia.updateBucket(*bucket, node)
 		}
 	}
+
+	return key
 }
 
 // Ping sends a ping message to a target node
