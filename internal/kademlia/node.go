@@ -13,6 +13,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const updateTimer = 10
+
 //Node a struct representing a node in the kademlia network
 type Node struct {
 	RT       *RoutingTable
@@ -65,36 +67,34 @@ func (kademlia *Node) InitNode() {
 
 	kademlia.content = make(map[string]string)
 	kademlia.deadline = 10
+	go kademlia.updateContent()
+
 }
 
-func (kademlia *Node) UpdateContent() {
-	for key, value := range kademlia.content {
-		fmt.Println("Key:", key, "=>", "Value:", value)
+func (kademlia *Node) updateContent() {
+	for {
+		for key, value := range kademlia.content {
+			timestamp := strings.Split(value, ":")[0]
 
-		timestamp := strings.Split(value, ":")[0]
+			n, err := strconv.ParseInt(timestamp, 10, 64)
 
-		n, err := strconv.ParseInt(timestamp, 10, 64)
+			if err != nil {
+				log.Warn(err)
+			}
 
-		if err != nil {
-			log.Warn(err)
+			now := time.Now() // current local time
+			sec := now.Unix() // number of seconds since January 1, 1970 UTC
+
+			if ((n + kademlia.deadline) - sec) < 0 {
+				delete(kademlia.content, key) // delete a key-value pair
+			}
 		}
-
-		now := time.Now() // current local time
-		sec := now.Unix() // number of seconds since January 1, 1970 UTC
-
-		// fmt.Println("sum = ", (n+kademlia.deadline)-sec)
-
-		if ((n + kademlia.deadline) - sec) < 0 {
-			fmt.Println("deleted, time =", (n + kademlia.deadline))
-			delete(kademlia.content, key) // delete a key-value pair
-		}
+		time.Sleep(updateTimer * time.Second)
 	}
 }
 
 //NodeLookup - finds the k closests nodes to a target ID in the kademlia network
 func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
-	kademlia.UpdateContent()
-
 	alpha := 1
 	shortList := ContactCandidates{kademlia.RT.FindClosestContacts(targetID, alpha)}
 
@@ -146,13 +146,7 @@ func (kademlia *Node) NodeLookup(targetID *NodeID) []Contact {
 }
 
 //FindValue - finds a value stored in the kademlia network
-<<<<<<< HEAD
 func (kademlia *Node) FindValue(hash string) (string, error) {
-=======
-func (kademlia *Node) FindValue(hash string) string {
-	kademlia.UpdateContent()
-
->>>>>>> 4606949... Update first U1 prototype
 	if content, ok := kademlia.content[hash]; ok {
 		return content, nil
 
@@ -179,15 +173,11 @@ func (kademlia *Node) FindValue(hash string) string {
 					rpc, err := kademlia.client.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
 
 					if rpc.Payload.Value != nil && *rpc.Payload.Value != "" {
-<<<<<<< HEAD
-						return *rpc.Payload.Value, nil
-=======
 						value := strings.Split(*rpc.Payload.Value, ":")[1]
 						fmt.Println("val =  ", value)
 						kademlia.StoreValue(value)
 
-						return *rpc.Payload.Value
->>>>>>> 4606949... Update first U1 prototype
+						return *rpc.Payload.Value, nil
 					}
 
 					// if a node responds with an error remove that node
@@ -226,7 +216,6 @@ func (kademlia *Node) updateShortlist(
 	i, numProbed int,
 	currentClosest Contact,
 	updateClosest bool) {
-	kademlia.UpdateContent()
 
 	probedNodes.Append([]Contact{shortList.contacts[i]})
 
@@ -251,7 +240,6 @@ func (kademlia *Node) appendUniqueContacts(rpc *RPC,
 	shortList ContactCandidates,
 	currentClosest Contact,
 	updateClosest bool) {
-	kademlia.UpdateContent()
 
 	if rpc.Payload.Contacts[0].Less(&currentClosest) {
 		currentClosest = rpc.Payload.Contacts[0]
@@ -267,13 +255,7 @@ func (kademlia *Node) appendUniqueContacts(rpc *RPC,
 
 // StoreValue takes some data, hashes it with SHA1 and finds the k closest
 // nodes to that hash, then sends a store RPC to those k nodes
-<<<<<<< HEAD
 func (kademlia *Node) StoreValue(data string) string {
-=======
-func (kademlia *Node) StoreValue(data string) {
-	kademlia.UpdateContent()
-
->>>>>>> 4606949... Update first U1 prototype
 	sha1 := sha1.Sum([]byte(data))
 	key := hex.EncodeToString(sha1[:])
 
@@ -308,8 +290,6 @@ func (kademlia *Node) StoreValue(data string) {
 // if the node responds move it to the end of the bucket it exists in
 // if the node does not respond remove it from the bucket
 func (kademlia *Node) Ping(target *Contact) {
-	kademlia.UpdateContent()
-
 	rpc, err := kademlia.client.SendPingMessage(target, &kademlia.RT.me)
 
 	if err != nil {
@@ -324,8 +304,6 @@ func (kademlia *Node) Ping(target *Contact) {
 // removes a stale first node in the bucket and replace it with the new node
 // or a active old node from the front to the back
 func (kademlia *Node) updateBucket(bucket bucket, contact Contact) {
-	kademlia.UpdateContent()
-
 	// if there is space in the bucket add the node
 	if bucket.Len() < BucketSize || bucket.Contains(contact) {
 		kademlia.RT.AddContact(contact)
@@ -343,8 +321,6 @@ func (kademlia *Node) updateBucket(bucket bucket, contact Contact) {
 // searchLocalStore looks for a value in the node's store. Returns the value
 // if found else nil.
 func (kademlia *Node) searchLocalStore(key string) *string {
-	kademlia.UpdateContent()
-
 	value, exists := kademlia.content[key]
 	if !exists {
 		return nil
@@ -375,8 +351,6 @@ func generateRefreshNodeValue(bucketIndex int, seed int64) *NodeID {
 }
 
 func (kademlia *Node) refreshNodes() {
-	kademlia.UpdateContent()
-
 	for i := 1; i > 159; i++ {
 		nodeID := generateRefreshNodeValue(i, time.Now().UTC().UnixNano())
 		contact := NewContact(nodeID, "")
@@ -387,8 +361,6 @@ func (kademlia *Node) refreshNodes() {
 // JoinNetwork add a target node to the routing table, do a Node Lookup on
 // the current node (not the target) and then refresh all buckets
 func (kademlia *Node) JoinNetwork(target Contact) {
-	kademlia.UpdateContent()
-
 	kademlia.RT.AddContact(target)
 
 	kademlia.NodeLookup(kademlia.RT.GetMe().ID)
@@ -397,7 +369,5 @@ func (kademlia *Node) JoinNetwork(target Contact) {
 }
 
 func (kademlia *Node) insertLocalStore(key string, value string) {
-	kademlia.UpdateContent()
-
 	kademlia.content[key] = value
 }
