@@ -1,7 +1,9 @@
 package kademlia
 
 import (
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -10,11 +12,27 @@ func TestSearchLocalStore(t *testing.T) {
 	node := Node{nil, Client{}, make(map[string]string), 10}
 	node.insertLocalStore("hello", "there")
 
-	c := node.searchLocalStore("hello")
-	assert.Equal(t, "there", *c)
+	val1 := node.searchLocalStore("hello")
+	assert.Equal(t, "there", *val1)
 
-	y := node.searchLocalStore("shouldNotExist")
-	assert.Nil(t, y)
+	val2 := node.searchLocalStore("shouldNotExist")
+	assert.Nil(t, val2)
+
+}
+
+func TestUpdateContent(t *testing.T) {
+	node := Node{nil, Client{}, make(map[string]string), 0}
+
+	now := time.Now() // current local time
+	sec := now.Unix() // number of seconds since January 1, 1970 UTC
+
+	// create package and subtract 1000 seconds from current time to make it outdated
+	data_package := strconv.FormatInt(sec-1000, 10) + ":" + "there"
+	node.insertLocalStore("hello", data_package)
+	val := node.content
+	node.updateContent()
+
+	assert.Equal(t, 0, len(val))
 
 }
 

@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -67,30 +66,31 @@ func (kademlia *Node) InitNode() {
 
 	kademlia.content = make(map[string]string)
 	kademlia.deadline = 10
-	go kademlia.updateContent()
-
+	go func() {
+		for {
+			kademlia.updateContent()
+		}
+	}()
 }
 
 func (kademlia *Node) updateContent() {
-	for {
-		for key, value := range kademlia.content {
-			timestamp := strings.Split(value, ":")[0]
+	for key, value := range kademlia.content {
+		timestamp := strings.Split(value, ":")[0]
 
-			n, err := strconv.ParseInt(timestamp, 10, 64)
+		n, err := strconv.ParseInt(timestamp, 10, 64)
 
-			if err != nil {
-				log.Warn(err)
-			}
-
-			now := time.Now() // current local time
-			sec := now.Unix() // number of seconds since January 1, 1970 UTC
-
-			if ((n + kademlia.deadline) - sec) < 0 {
-				delete(kademlia.content, key) // delete a key-value pair
-			}
+		if err != nil {
+			log.Warn(err)
 		}
-		time.Sleep(updateTimer * time.Second)
+
+		now := time.Now() // current local time
+		sec := now.Unix() // number of seconds since January 1, 1970 UTC
+
+		if ((n + kademlia.deadline) - sec) < 0 {
+			delete(kademlia.content, key) // delete a key-value pair
+		}
 	}
+	time.Sleep(updateTimer * time.Second)
 }
 
 //NodeLookup - finds the k closests nodes to a target ID in the kademlia network
@@ -173,8 +173,9 @@ func (kademlia *Node) FindValue(hash string) (string, error) {
 					rpc, err := kademlia.client.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
 
 					if rpc.Payload.Value != nil && *rpc.Payload.Value != "" {
+
+						// update timestamp and re-store the value
 						value := strings.Split(*rpc.Payload.Value, ":")[1]
-						fmt.Println("val =  ", value)
 						kademlia.StoreValue(value)
 
 						return *rpc.Payload.Value, nil
