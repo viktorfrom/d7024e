@@ -5,16 +5,21 @@ import (
 	"encoding/hex"
 	"errors"
 	"math/rand"
+	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
+const updateTimer = 10
+
 //Node a struct representing a node in the kademlia network
 type Node struct {
-	RT      *RoutingTable
-	client  Client
-	content map[string]string
+	RT       *RoutingTable
+	client   Client
+	content  map[string]string
+	deadline int64
 }
 
 // InitNode initializes the Kademlia Node
@@ -60,6 +65,32 @@ func (kademlia *Node) InitNode() {
 	}
 
 	kademlia.content = make(map[string]string)
+	kademlia.deadline = 10
+	go func() {
+		for {
+			kademlia.updateContent()
+		}
+	}()
+}
+
+func (kademlia *Node) updateContent() {
+	for key, value := range kademlia.content {
+		timestamp := strings.Split(value, ":")[0]
+
+		n, err := strconv.ParseInt(timestamp, 10, 64)
+
+		if err != nil {
+			log.Warn(err)
+		}
+
+		now := time.Now() // current local time
+		sec := now.Unix() // number of seconds since January 1, 1970 UTC
+
+		if ((n + kademlia.deadline) - sec) < 0 {
+			delete(kademlia.content, key) // delete a key-value pair
+		}
+	}
+	time.Sleep(updateTimer * time.Second)
 }
 
 //NodeLookup - finds the k closests nodes to a target ID in the kademlia network
@@ -142,6 +173,11 @@ func (kademlia *Node) FindValue(hash string) (string, error) {
 					rpc, err := kademlia.client.SendFindDataMessage(&shortList.contacts[i], &kademlia.RT.me, hash)
 
 					if rpc.Payload.Value != nil && *rpc.Payload.Value != "" {
+
+						// update timestamp and re-store the value
+						value := strings.Split(*rpc.Payload.Value, ":")[1]
+						kademlia.StoreValue(value)
+
 						return *rpc.Payload.Value, nil
 					}
 
@@ -228,9 +264,15 @@ func (kademlia *Node) StoreValue(data string) string {
 	targetID := NewNodeID(key)
 	nodes := kademlia.NodeLookup(targetID)
 
+	now := time.Now() // current local time
+	sec := now.Unix() // number of seconds since January 1, 1970 UTC
+
+	// Store value in the map of the current node
+	data_package := strconv.FormatInt(sec, 10) + ":" + data
+
 	// for each of the closest nodes send a store RPC
 	for _, node := range nodes {
-		_, err := kademlia.client.SendStoreMessage(&node, &kademlia.RT.me, key, data)
+		_, err := kademlia.client.SendStoreMessage(&node, &kademlia.RT.me, key, data_package)
 
 		if err != nil {
 			log.Warn(err)
@@ -320,7 +362,6 @@ func (kademlia *Node) refreshNodes() {
 // JoinNetwork add a target node to the routing table, do a Node Lookup on
 // the current node (not the target) and then refresh all buckets
 func (kademlia *Node) JoinNetwork(target Contact) {
-
 	kademlia.RT.AddContact(target)
 
 	kademlia.NodeLookup(kademlia.RT.GetMe().ID)

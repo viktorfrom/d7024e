@@ -173,7 +173,7 @@ func TestIncomingFindValueReturnClosestContacts(t *testing.T) {
 }
 
 func TestIncomingFindValueFoundValue(t *testing.T) {
-	node := Node{nil, Client{}, make(map[string]string)}
+	node := Node{nil, Client{}, make(map[string]string), 10}
 	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
 	node.RT = NewRoutingTable(c)
 	network := InitServer(&node)
@@ -189,7 +189,7 @@ func TestIncomingFindValueFoundValue(t *testing.T) {
 }
 
 func TestIncomingFindValueReturnsEmptyClosestContacts(t *testing.T) {
-	node := Node{nil, Client{}, make(map[string]string)}
+	node := Node{nil, Client{}, make(map[string]string), 10}
 	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
 	node.RT = NewRoutingTable(c)
 	network := InitServer(&node)
@@ -205,7 +205,7 @@ func TestIncomingFindValueReturnsEmptyClosestContacts(t *testing.T) {
 }
 
 func TestIncomingStoreSuccessfullyStoreValue(t *testing.T) {
-	node := Node{nil, Client{}, make(map[string]string)}
+	node := Node{nil, Client{}, make(map[string]string), 10}
 	c := NewContact(NewNodeID("00000000000000000000000000000000FFFFFFFF"), "10.0.8.1:8080")
 	node.RT = NewRoutingTable(c)
 	network := InitServer(&node)
