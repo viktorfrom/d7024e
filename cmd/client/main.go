@@ -133,6 +133,11 @@ func Get(url, hash string) (string, string, string, error) {
 		return "500", "", "", err
 	}
 
+	if resp.StatusCode == 404 {
+		fmt.Println("Value not found")
+		return strconv.Itoa(resp.StatusCode), "", "", errors.New(resp.Status)
+	}
+
 	if resp.StatusCode != 200 {
 		return strconv.Itoa(resp.StatusCode), "", "", errors.New(resp.Status)
 	}
